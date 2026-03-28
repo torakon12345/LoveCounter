@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Heart Counter - Bottom Reset Edition</title>
+    <title>Heart Counter - Balanced Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@900&family=JetBrains+Mono:wght@800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -14,7 +14,7 @@
             --ll-magenta: #e6007e;
             --heart-size: clamp(54px, 14vw, 60px); 
             --btn-size: clamp(40px, 10vw, 44px);
-            --row-gap: 12px;
+            --row-gap: 12px; /* ★行間を12pxに固定★ */
         }
 
         .color-row-0 { --primary: #e93382; --shadow: #b3205f; } 
@@ -38,13 +38,13 @@
             backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
             width: 100%; max-width: 480px; height: 100vh;
             display: flex; flex-direction: column;
-            padding: calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 20px);
+            padding: calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 10px);
             box-sizing: border-box;
         }
 
         .board-header {
             display: flex; justify-content: center; align-items: center;
-            padding-bottom: 20px; margin-bottom: 10px;
+            padding-bottom: 15px; margin-bottom: 5px;
             border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
 
@@ -53,34 +53,36 @@
             letter-spacing: 0.15em;
         }
 
-        /* 下部に配置するリセットボタンのコンテナ */
+        .counters-stage {
+            flex: 1; display: flex; flex-direction: column;
+            justify-content: flex-start;
+            padding-top: 10px;
+            gap: var(--row-gap); /* ★ここで行間を適用★ */
+        }
+
         .bottom-actions {
-            margin-top: auto; /* 下に押し下げる */
-            padding: 20px 0;
+            margin-top: auto;
+            padding: 30px 0 40px; /* 位置を少し上げたままに調整 */
             display: flex; justify-content: center;
             border-top: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .reset-btn {
-            background: #ff4757; color: white; border: none; padding: 12px 30px;
-            border-radius: 30px; font-weight: 900; font-size: 13px;
-            box-shadow: 0 5px 0 #c0392b; cursor: pointer; transition: all 0.1s ease;
-            letter-spacing: 0.1em;
+            background: #ff4757; color: white; border: none; 
+            padding: 16px 55px; 
+            border-radius: 40px; font-weight: 900; font-size: 16px;
+            box-shadow: 0 6px 0 #c0392b; cursor: pointer; transition: all 0.1s ease;
+            letter-spacing: 0.15em;
+            user-select: none;
         }
 
-        .reset-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #c0392b; }
+        .reset-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #c0392b; }
 
-        .counters-stage {
-            flex: 1; display: flex; flex-direction: column;
-            justify-content: flex-start; /* 上寄せに変更 */
-            padding-top: 20px; /* 上の余白を調整 */
-            gap: var(--row-gap);
-        }
-
-        .row-container { width: 100%; padding: 4px 0; }
+        .row-container { width: 100%; }
 
         .controls-wrapper {
             display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            padding: 6px 0; /* 行間12pxを守るためにパディングを微調整 */
         }
 
         .step-btn {
@@ -90,14 +92,14 @@
             display: flex; justify-content: center; align-items: center;
             cursor: pointer; transition: all 0.1s;
             user-select: none;
+            z-index: 30;
         }
 
         .step-btn:active { transform: scale(0.92); }
 
         .track {
-            flex: 1; height: 12px; background-color: var(--track-bg);
-            border-radius: 10px; position: relative; cursor: pointer;
-            touch-action: none;
+            flex: 1; height: 14px; background-color: var(--track-bg);
+            border-radius: 10px; position: relative;
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 4px; box-sizing: border-box;
         }
@@ -193,9 +195,11 @@
         }
 
         row.innerHTML = `
-            <div class="controls-wrapper">
-                <div class="step-btn" onclick="step(${idx}, -1)">−</div>
-                <div class="track" onmousedown="startSlide(event, ${idx})" ontouchstart="startSlide(event, ${idx})">
+            <div class="controls-wrapper" 
+                 onmousedown="if(event.target.className!=='step-btn') startSlide(event, ${idx})" 
+                 ontouchstart="if(event.target.className!=='step-btn') startSlide(event, ${idx})">
+                <div class="step-btn" onclick="event.stopPropagation(); step(${idx}, -1)">−</div>
+                <div class="track">
                     ${dotsHtml}
                     <div class="heart" id="heart-${idx}">
                         <span class="heart-number" id="val-${idx}">0</span>
@@ -210,7 +214,7 @@
                         </svg>
                     </div>
                 </div>
-                <div class="step-btn" onclick="step(${idx}, 1)">＋</div>
+                <div class="step-btn" onclick="event.stopPropagation(); step(${idx}, 1)">＋</div>
             </div>
         `;
         board.appendChild(row);
@@ -228,12 +232,15 @@
 
     function updateFromPos(e) {
         if (activeIdx === null) return;
-        const track = document.querySelectorAll('.track')[activeIdx];
+        const tracks = document.querySelectorAll('.track');
+        const track = tracks[activeIdx];
         const rect = track.getBoundingClientRect();
         const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
         const x = clientX - rect.left;
+        
         let val = Math.round((x / rect.width) * MAX_VAL);
         val = Math.max(0, Math.min(MAX_VAL, val));
+        
         if (state[activeIdx] !== val) updateUI(activeIdx, val);
     }
 
