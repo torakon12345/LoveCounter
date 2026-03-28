@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Heart Counter - Minimal Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@900&family=JetBrains+Mono:wght@800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-grad-start: #f0f7ff; 
+            --bg-grad-end: #e6f0fa;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --track-bg: rgba(0, 0, 0, 0.08);
+            --ll-magenta: #e6007e;
+            --heart-size: clamp(52px, 13vw, 58px); 
+            --btn-size: clamp(40px, 10vw, 44px);   
+        }
+
+        .color-row-0 { --primary: #e93382; --shadow: #b3205f; } 
+        .color-row-1 { --primary: #3fb155; --shadow: #2d8a41; } 
+        .color-row-2 { --primary: #58b4ed; --shadow: #3a8fc4; } 
+        .color-row-3 { --primary: #eb4525; --shadow: #b8331a; } 
+        .color-row-4 { --primary: #f8c244; --shadow: #c99a2e; } 
+        .color-row-5 { --primary: #8d50bb; --shadow: #6d3a94; } 
+        .color-row-6 { --primary: #6d767e; --shadow: #4d545b; } 
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-grad-start) 0%, var(--bg-grad-end) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+            overflow: hidden;
+        }
+
+        .board-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: calc(env(safe-area-inset-top) + 10px) 20px calc(env(safe-area-inset-bottom) + 10px);
+            box-sizing: border-box;
+        }
+
+        .board-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 5px 15px;
+            border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+            margin-bottom: 10px;
+        }
+
+        .board-title {
+            font-size: 1.1em;
+            font-weight: 900;
+            color: var(--ll-magenta); 
+            letter-spacing: 0.1em;
+        }
+
+        .reset-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 900;
+            font-size: 12px;
+            box-shadow: 2px 2px 0 #c0392b;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .reset-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0 #c0392b;
+        }
+
+        .counters-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly; /* 行の間隔を均等に */
+            padding: 10px 0;
+        }
+
+        .row-container {
+            width: 100%;
+        }
+
+        .controls-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .step-btn {
+            width: var(--btn-size);
+            height: var(--btn-size);
+            border-radius: 50%; 
+            border: 3px solid #333;
+            background: white;
+            color: #333;
+            font-size: 22px;
+            font-weight: 900;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+            user-select: none;
+        }
+
+        .step-btn:active { transform: scale(0.9); }
+        .step-btn span { transform: translateY(-1px); pointer-events: none; }
+
+        .track {
+            flex: 1;
+            height: 14px;
+            background-color: var(--track-bg);
+            border-radius: 7px;
+            position: relative;
+            box-shadow: inset 2px 2px 0 rgba(0,0,0,0.1);
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .heart {
+            width: var(--heart-size);
+            height: var(--heart-size);
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            transition: left 0.12s cubic-bezier(0.1, 0.9, 0.2, 1.1);
+        }
+
+        .heart.sliding { transition: none; }
+
+        .heart-svg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .heart-number {
+            position: relative;
+            z-index: 11;
+            color: white;
+            font-family: 'M PLUS 1p', sans-serif;
+            font-size: clamp(20px, 6vw, 24px); 
+            font-weight: 900;
+            margin-top: 2px;
+            user-select: none;
+        }
+
+        .symbol {
+            position: absolute;
+            bottom: 6px;
+            right: 8px;
+            font-size: 14px;
+            font-weight: 900;
+            color: rgba(255,255,255,0.9);
+            z-index: 12;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="board-container">
+    <div class="board-header">
+        <div class="board-title">HEART COUNTER!</div>
+        <button class="reset-btn" onclick="allReset()">ALL RESET</button>
+    </div>
+    <div class="counters-stage" id="board"></div>
+</div>
+
+<script>
+    const rowConfigs = [
+        { color: 'pink', symbol: '＋' },
+        { color: 'green', symbol: '＊' },
+        { color: 'lightblue', symbol: '－' },
+        { color: 'red', symbol: '♥' },
+        { color: 'yellow', symbol: '✦' },
+        { color: 'purple', symbol: '◆' },
+        { color: 'gray', symbol: '' }
+    ];
+
+    const MAX_VAL = 15;
+    const state = new Array(rowConfigs.length).fill(0);
+    const board = document.getElementById('board');
+    let activeIdx = null;
+
+    rowConfigs.forEach((config, idx) => {
+        const row = document.createElement('div');
+        row.className = `row-container color-row-${idx}`;
+        row.id = `row-${idx}`;
+        
+        row.innerHTML = `
+            <div class="controls-wrapper">
+                <div class="step-btn" onclick="step(${idx}, -1)"><span>−</span></div>
+                <div class="track" onmousedown="startSlide(event, ${idx})" ontouchstart="startSlide(event, ${idx})">
+                    <div class="heart" id="heart-${idx}">
+                        <span class="heart-number" id="val-${idx}">0</span>
+                        <span class="symbol">${config.symbol}</span>
+                        <svg class="heart-svg" viewBox="0 0 32 32">
+                            <style>
+                                #path-main-${idx} { fill: var(--primary); }
+                                #path-shadow-${idx} { fill: var(--shadow); }
+                            </style>
+                            <path id="path-shadow-${idx}" transform="translate(2.5, 2.5)" d="M16 28.1a.5.5 0 01-.3-.1C12 25.3 4 19 4 12.5A6.5 6.5 0 0110.5 6a6.5 6.5 0 015.5 3 6.5 6.5 0 015.5-3 6.5 6.5 0 016.5 6.5c0 6.5-8 12.8-11.7 15.5a.5.5 0 01-.3.1z"/>
+                            <path id="path-main-${idx}" d="M16 28.1a.5.5 0 01-.3-.1C12 25.3 4 19 4 12.5A6.5 6.5 0 0110.5 6a6.5 6.5 0 015.5 3 6.5 6.5 0 015.5-3 6.5 6.5 0 016.5 6.5c0 6.5-8 12.8-11.7 15.5a.5.5 0 01-.3.1z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="step-btn" onclick="step(${idx}, 1)"><span>＋</span></div>
+            </div>
+        `;
+        board.appendChild(row);
+    });
+
+    function startSlide(e, idx) {
+        activeIdx = idx;
+        document.getElementById(`heart-${idx}`).classList.add('sliding');
+        updateFromPos(e);
+        window.addEventListener('mousemove', updateFromPos);
+        window.addEventListener('touchmove', updateFromPos, { passive: false });
+        window.addEventListener('mouseup', stopSlide);
+        window.addEventListener('touchend', stopSlide);
+    }
+
+    function updateFromPos(e) {
+        if (activeIdx === null) return;
+        const track = document.querySelectorAll('.track')[activeIdx];
+        const rect = track.getBoundingClientRect();
+        const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+        const x = clientX - rect.left;
+        let val = Math.round((x / rect.width) * MAX_VAL);
+        val = Math.max(0, Math.min(MAX_VAL, val));
+        if (state[activeIdx] !== val) updateUI(activeIdx, val);
+    }
+
+    function stopSlide() {
+        if (activeIdx !== null) document.getElementById(`heart-${activeIdx}`).classList.remove('sliding');
+        activeIdx = null;
+        window.removeEventListener('mousemove', updateFromPos);
+        window.removeEventListener('touchmove', updateFromPos);
+        window.removeEventListener('mouseup', stopSlide);
+        window.removeEventListener('touchend', stopSlide);
+    }
+
+    window.allReset = function() {
+        for(let i=0; i<state.length; i++) updateUI(i, 0);
+    };
+
+    window.step = function(idx, delta) {
+        let newVal = state[idx] + delta;
+        newVal = Math.max(0, Math.min(MAX_VAL, newVal));
+        updateUI(idx, newVal);
+    };
+
+    function updateUI(idx, val) {
+        state[idx] = val;
+        const heart = document.getElementById(`heart-${idx}`);
+        const text = document.getElementById(`val-${idx}`);
+        const pos = (val / MAX_VAL) * 100;
+        heart.style.left = `${pos}%`;
+        text.textContent = val;
+    }
+
+    window.onload = () => {
+        setTimeout(() => { for(let i=0; i<state.length; i++) updateUI(i, 0); }, 150);
+    };
+</script>
+</body>
+</html>
