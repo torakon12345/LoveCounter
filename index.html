@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Heart Counter - Balanced Edition</title>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@900&family=JetBrains+Mono:wght@800&display=swap" rel="stylesheet">
+    <title>Heart Counter - Smooth Fade Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800;900&family=JetBrains+Mono:wght@800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-grad-start: #f8fbff; 
             --bg-grad-end: #e2eef9;
             --glass-bg: rgba(255, 255, 255, 0.75);
             --track-bg: rgba(0, 0, 0, 0.05);
-            --ll-magenta: #e6007e;
             --heart-size: clamp(54px, 14vw, 60px); 
             --btn-size: clamp(40px, 10vw, 44px);
-            --row-gap: 12px; /* ★行間を12pxに固定★ */
+            --row-gap: 12px;
+            --glow-color: #D1B932;
         }
 
+        /* --- UI基本設定（省略不可部分） --- */
         .color-row-0 { --primary: #e93382; --shadow: #b3205f; } 
         .color-row-1 { --primary: #3fb155; --shadow: #2d8a41; } 
         .color-row-2 { --primary: #58b4ed; --shadow: #3a8fc4; } 
@@ -40,115 +41,105 @@
             display: flex; flex-direction: column;
             padding: calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 10px);
             box-sizing: border-box;
+            position: relative;
         }
 
+        /* --- ライブ成功演出（高密度グロー & 確実なフェードアウト） --- */
+        #celebration-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 2000; pointer-events: none;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0;
+        }
+
+        /* 表示された時 */
+        #celebration-overlay.show {
+            opacity: 1;
+        }
+
+        .success-logo-text {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            font-size: clamp(48px, 14vw, 62px);
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: 2px;
+            text-shadow: 
+                0 0 2px  var(--glow-color),
+                0 0 4px  var(--glow-color),
+                0 0 8px  var(--glow-color),
+                0 0 12px var(--glow-color),
+                0 0 20px rgba(209, 185, 50, 0.7),
+                0 0 30px rgba(209, 185, 50, 0.4);
+            opacity: 0;
+            transform: scale(0);
+            text-align: center;
+        }
+
+        /* 出現時アニメーション */
+        #celebration-overlay.show .success-logo-text {
+            animation: sc-gold-zoom 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        /* 消去時アニメーション（クラスが付与された時） */
+        #celebration-overlay.hiding {
+            animation: sc-fade-out 1.2s ease-in forwards;
+        }
+
+        @keyframes sc-gold-zoom {
+            0% { transform: scale(0); opacity: 0; }
+            45% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes sc-fade-out {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.95); }
+        }
+
+        .sc-particle { position: absolute; font-size: 24px; pointer-events: none; z-index: 2050; }
+        @keyframes sc-particle-fly {
+            0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(1.3) rotate(var(--tr)); opacity: 0; }
+        }
+
+        /* --- UIパーツ（カウンター等） --- */
         .board-header {
             display: flex; justify-content: center; align-items: center;
             padding-bottom: 15px; margin-bottom: 5px;
             border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            min-height: 40px;
         }
-
-        .board-title {
-            font-size: 1.2em; font-weight: 900; color: var(--ll-magenta); 
-            letter-spacing: 0.15em;
-        }
-
-        .counters-stage {
-            flex: 1; display: flex; flex-direction: column;
-            justify-content: flex-start;
-            padding-top: 10px;
-            gap: var(--row-gap); /* ★ここで行間を適用★ */
-        }
-
-        .bottom-actions {
-            margin-top: auto;
-            padding: 30px 0 40px; /* 位置を少し上げたままに調整 */
-            display: flex; justify-content: center;
-            border-top: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .reset-btn {
-            background: #ff4757; color: white; border: none; 
-            padding: 16px 55px; 
-            border-radius: 40px; font-weight: 900; font-size: 16px;
-            box-shadow: 0 6px 0 #c0392b; cursor: pointer; transition: all 0.1s ease;
-            letter-spacing: 0.15em;
-            user-select: none;
-        }
-
+        .board-title-image { max-width: 250px; width: 80vw; height: auto; display: block; }
+        .counters-stage { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: var(--row-gap); }
+        .bottom-actions { margin-top: auto; padding: 30px 0 40px; display: flex; justify-content: center; border-top: 1px solid rgba(0, 0, 0, 0.05); }
+        .reset-btn { background: #ff4757; color: white; border: none; padding: 16px 55px; border-radius: 40px; font-weight: 900; font-size: 16px; box-shadow: 0 6px 0 #c0392b; cursor: pointer; transition: all 0.1s ease; letter-spacing: 0.15em; user-select: none; }
         .reset-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #c0392b; }
-
         .row-container { width: 100%; }
-
-        .controls-wrapper {
-            display: flex; align-items: center; justify-content: space-between; gap: 12px;
-            padding: 6px 0; /* 行間12pxを守るためにパディングを微調整 */
-        }
-
-        .step-btn {
-            width: var(--btn-size); height: var(--btn-size);
-            border-radius: 12px; border: 2px solid rgba(0,0,0,0.1);
-            background: white; color: #333; font-size: 20px; font-weight: 900;
-            display: flex; justify-content: center; align-items: center;
-            cursor: pointer; transition: all 0.1s;
-            user-select: none;
-            z-index: 30;
-        }
-
-        .step-btn:active { transform: scale(0.92); }
-
-        .track {
-            flex: 1; height: 14px; background-color: var(--track-bg);
-            border-radius: 10px; position: relative;
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 4px; box-sizing: border-box;
-        }
-
-        .track-dot {
-            width: 4px; height: 4px;
-            background-color: rgba(0, 0, 0, 0.08); 
-            border-radius: 50%;
-            pointer-events: none;
-        }
-
-        .heart {
-            width: var(--heart-size); height: var(--heart-size);
-            position: absolute; top: 50%;
-            transform: translate(-50%, -50%);
-            display: flex; justify-content: center; align-items: center;
-            pointer-events: none;
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
-            z-index: 20;
-            transition: left 0.15s cubic-bezier(0.18, 0.89, 0.32, 1.28); 
-        }
-
+        .controls-wrapper { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; }
+        .step-btn { width: var(--btn-size); height: var(--btn-size); border-radius: 12px; border: 2px solid rgba(0,0,0,0.1); background: white; color: #333; font-size: 20px; font-weight: 900; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.1s; user-select: none; position: relative; z-index: 10; }
+        .track { flex: 1; height: 14px; background-color: var(--track-bg); border-radius: 10px; position: relative; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; box-sizing: border-box; z-index: 5; }
+        .track-dot { width: 4px; height: 4px; background-color: rgba(0, 0, 0, 0.08); border-radius: 50%; pointer-events: none; }
+        .heart { width: var(--heart-size); height: var(--heart-size); position: absolute; top: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; pointer-events: none; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15)); transition: left 0.15s cubic-bezier(0.18, 0.89, 0.32, 1.28); z-index: 999; }
         .heart.sliding { transition: none; }
-
         .heart-svg { position: absolute; width: 100%; height: 100%; }
-
-        .heart-number {
-            position: relative; z-index: 21; color: white;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: clamp(22px, 6.5vw, 26px); font-weight: 800;
-            margin-top: 0px; margin-left: 3px; user-select: none;
-        }
-
-        .symbol-badge {
-            position: absolute; bottom: 6px; right: 6px;
-            width: 18px; height: 18px; background: white;
-            border-radius: 50%; display: flex; justify-content: center; align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 25;
-        }
-
-        .symbol { font-size: 11px; font-weight: 900; color: var(--primary); margin-bottom: 1px; }
-        .symbol-all { font-size: 9px; letter-spacing: -0.5px; transform: translateX(-0.5px); }
+        .heart-number { position: relative; z-index: 1000; color: white; font-family: 'JetBrains Mono', monospace; font-size: clamp(22px, 6.5vw, 26px); font-weight: 800; margin-left: 3px; user-select: none; }
+        .symbol-badge { position: absolute; bottom: 6px; right: 6px; width: 18px; height: 18px; background: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 1001; }
+        .symbol { font-size: 11px; font-weight: 900; color: var(--primary); }
     </style>
 </head>
 <body>
 
 <div class="board-container">
+    <div id="celebration-overlay">
+        <div id="particles-container"></div>
+        <div class="success-logo-container">
+            <div class="success-logo-text">ライブ成功</div>
+        </div>
+    </div>
+
     <div class="board-header">
-        <div class="board-title">HEART COUNTER</div>
+        <img src="counter.png" alt="HEART COUNTER" class="board-title-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <h2 style="display:none; color:#e6007e; font-family:'M PLUS Rounded 1c';">HEART COUNTER</h2>
     </div>
     
     <div class="counters-stage" id="board"></div>
@@ -160,12 +151,9 @@
 
 <script>
     const rowConfigs = [
-        { color: 'pink', symbol: '＋' },
-        { color: 'green', symbol: '＊' },
-        { color: 'lightblue', symbol: '－' },
-        { color: 'red', symbol: '♥' },
-        { color: 'yellow', symbol: '✦' },
-        { color: 'purple', symbol: '◆' },
+        { color: 'pink', symbol: '＋' }, { color: 'green', symbol: '＊' },
+        { color: 'lightblue', symbol: '－' }, { color: 'red', symbol: '♥' },
+        { color: 'yellow', symbol: '✦' }, { color: 'purple', symbol: '◆' },
         { color: 'gray', symbol: 'ALL' }
     ];
 
@@ -173,46 +161,53 @@
     const state = new Array(rowConfigs.length).fill(0);
     const board = document.getElementById('board');
     let activeIdx = null;
+    let isInitialized = false;
+    let isResetting = false;
+    let celebrationTimer = null;
+
+    function spawnParticles() {
+        const container = document.getElementById('particles-container');
+        container.innerHTML = '';
+        const glyphs = ['★', '♪', '✦', '✧', '♥'];
+        const colors = ['#f48fb1', '#D1B932', '#90caf9', '#ffffff', '#ffd54f'];
+        for (let i = 0; i < 35; i++) {
+            const p = document.createElement('div');
+            p.className = 'sc-particle';
+            p.textContent = glyphs[Math.floor(Math.random() * glyphs.length)];
+            p.style.color = colors[Math.floor(Math.random() * colors.length)];
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 90 + Math.random() * 220;
+            const tx = Math.cos(angle) * dist;
+            const ty = Math.sin(angle) * dist;
+            const tr = (Math.random() - 0.5) * 600;
+            p.style.setProperty('--tx', `${tx}px`);
+            p.style.setProperty('--ty', `${ty}px`);
+            p.style.setProperty('--tr', `${tr}deg`);
+            p.style.animation = `sc-particle-fly ${0.7 + Math.random() * 0.7}s ease-out forwards`;
+            p.style.left = '50%'; p.style.top = '50%';
+            container.appendChild(p);
+        }
+    }
 
     rowConfigs.forEach((config, idx) => {
         const row = document.createElement('div');
         row.className = `row-container color-row-${idx}`;
         row.id = `row-${idx}`;
-        
         const symbolClass = config.symbol === 'ALL' ? 'symbol symbol-all' : 'symbol';
-        const badgeHtml = config.symbol ? `
-            <div class="symbol-badge">
-                <span class="${symbolClass}">${config.symbol}</span>
-            </div>` : '';
-
         let dotsHtml = '';
-        for(let i=0; i<=MAX_VAL; i++) {
-            if (i % 5 === 0) {
-                dotsHtml += `<div class="track-dot"></div>`;
-            } else {
-                dotsHtml += `<div style="width:4px;"></div>`; 
-            }
-        }
-
+        for(let i=0; i<=MAX_VAL; i++) { dotsHtml += (i % 5 === 0) ? `<div class="track-dot"></div>` : `<div style="width:4px;"></div>`; }
         row.innerHTML = `
-            <div class="controls-wrapper" 
-                 onmousedown="if(event.target.className!=='step-btn') startSlide(event, ${idx})" 
-                 ontouchstart="if(event.target.className!=='step-btn') startSlide(event, ${idx})">
+            <div class="controls-wrapper" onmousedown="if(!event.target.classList.contains('step-btn')) startSlide(event, ${idx})" ontouchstart="if(!event.target.classList.contains('step-btn')) startSlide(event, ${idx})">
                 <div class="step-btn" onclick="event.stopPropagation(); step(${idx}, -1)">−</div>
-                <div class="track">
-                    ${dotsHtml}
-                    <div class="heart" id="heart-${idx}">
-                        <span class="heart-number" id="val-${idx}">0</span>
-                        ${badgeHtml}
-                        <svg class="heart-svg" viewBox="0 0 32 32">
-                            <style>
-                                #path-main-${idx} { fill: var(--primary); }
-                                #path-shadow-${idx} { fill: var(--shadow); }
-                            </style>
-                            <path id="path-shadow-${idx}" transform="translate(2, 2)" d="M16 28.1a.5.5 0 01-.3-.1C12 25.3 4 19 4 12.5A6.5 6.5 0 0110.5 6a6.5 6.5 0 015.5 3 6.5 6.5 0 015.5-3 6.5 6.5 0 016.5 6.5c0 6.5-8 12.8-11.7 15.5a.5.5 0 01-.3.1z"/>
-                            <path id="path-main-${idx}" d="M16 28.1a.5.5 0 01-.3-.1C12 25.3 4 19 4 12.5A6.5 6.5 0 0110.5 6a6.5 6.5 0 015.5 3 6.5 6.5 0 015.5-3 6.5 6.5 0 016.5 6.5c0 6.5-8 12.8-11.7 15.5a.5.5 0 01-.3.1z"/>
-                        </svg>
-                    </div>
+                <div class="track">${dotsHtml}</div>
+                <div class="heart" id="heart-${idx}">
+                    <span class="heart-number" id="val-${idx}">0</span>
+                    <div class="symbol-badge"><span class="${symbolClass}">${config.symbol}</span></div>
+                    <svg class="heart-svg" viewBox="0 0 32 32">
+                        <style>#path-main-${idx} { fill: var(--primary); } #path-shadow-${idx} { fill: var(--shadow); }</style>
+                        <path id="path-shadow-${idx}" transform="translate(2, 2)" d="M16 28.1a.5.5 0 01-.3-.1C12 25.3 4 19 4 12.5A6.5 6.5 0 0110.5 6a6.5 6.5 0 015.5 3 6.5 6.5 0 015.5-3 6.5 6.5 0 016.5 6.5c0 6.5-8 12.8-11.7 15.5a.5.5 0 01-.3.1z"/>
+                        <path id="path-main-${idx}" d="M16 28.1a.5.5 0 01-.3-.1C12 25.3 4 19 4 12.5A6.5 6.5 0 0110.5 6a6.5 6.5 0 015.5 3 6.5 6.5 0 015.5-3 6.5 6.5 0 016.5 6.5c0 6.5-8 12.8-11.7 15.5a.5.5 0 01-.3.1z"/>
+                    </svg>
                 </div>
                 <div class="step-btn" onclick="event.stopPropagation(); step(${idx}, 1)">＋</div>
             </div>
@@ -220,63 +215,68 @@
         board.appendChild(row);
     });
 
-    function startSlide(e, idx) {
-        activeIdx = idx;
-        document.getElementById(`heart-${idx}`).classList.add('sliding');
-        updateFromPos(e);
-        window.addEventListener('mousemove', updateFromPos);
-        window.addEventListener('touchmove', updateFromPos, { passive: false });
-        window.addEventListener('mouseup', stopSlide);
-        window.addEventListener('touchend', stopSlide);
-    }
-
-    function updateFromPos(e) {
-        if (activeIdx === null) return;
-        const tracks = document.querySelectorAll('.track');
-        const track = tracks[activeIdx];
-        const rect = track.getBoundingClientRect();
-        const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
-        const x = clientX - rect.left;
-        
-        let val = Math.round((x / rect.width) * MAX_VAL);
-        val = Math.max(0, Math.min(MAX_VAL, val));
-        
-        if (state[activeIdx] !== val) updateUI(activeIdx, val);
-    }
-
-    function stopSlide() {
-        if (activeIdx !== null) {
-            document.getElementById(`heart-${activeIdx}`).classList.remove('sliding');
-        }
-        activeIdx = null;
-        window.removeEventListener('mousemove', updateFromPos);
-        window.removeEventListener('touchmove', updateFromPos);
-        window.removeEventListener('mouseup', stopSlide);
-        window.removeEventListener('touchend', stopSlide);
-    }
+    function startSlide(e, idx) { activeIdx = idx; document.getElementById(`heart-${idx}`).classList.add('sliding'); updateFromPos(e); window.addEventListener('mousemove', updateFromPos); window.addEventListener('touchmove', updateFromPos, { passive: false }); window.addEventListener('mouseup', stopSlide); window.addEventListener('touchend', stopSlide); }
+    function updateFromPos(e) { if (activeIdx === null) return; const tracks = document.querySelectorAll('.track'); const track = tracks[activeIdx]; const rect = track.getBoundingClientRect(); const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX; const x = clientX - rect.left; let val = Math.round((x / rect.width) * MAX_VAL); val = Math.max(0, Math.min(MAX_VAL, val)); if (state[activeIdx] !== val) updateUI(activeIdx, val); }
+    function stopSlide() { if (activeIdx !== null) document.getElementById(`heart-${activeIdx}`).classList.remove('sliding'); activeIdx = null; window.removeEventListener('mousemove', updateFromPos); window.removeEventListener('touchmove', updateFromPos); window.removeEventListener('mouseup', stopSlide); window.removeEventListener('touchend', stopSlide); }
 
     window.allReset = function() {
+        isResetting = true;
+        hideCelebration(true); // 即時非表示
         for(let i=0; i<state.length; i++) updateUI(i, 0);
+        setTimeout(() => { isResetting = false; }, 50);
     };
 
-    window.step = function(idx, delta) {
-        let newVal = state[idx] + delta;
-        newVal = Math.max(0, Math.min(MAX_VAL, newVal));
-        updateUI(idx, newVal);
-    };
+    window.step = function(idx, delta) { let newVal = state[idx] + delta; newVal = Math.max(0, Math.min(MAX_VAL, newVal)); updateUI(idx, newVal); };
 
     function updateUI(idx, val) {
         state[idx] = val;
         const heart = document.getElementById(`heart-${idx}`);
         const text = document.getElementById(`val-${idx}`);
-        const pos = (val / MAX_VAL) * 100;
-        heart.style.left = `${pos}%`;
+        const track = document.querySelectorAll('.track')[idx];
+        const trackRect = track.getBoundingClientRect();
+        const wrapper = document.querySelectorAll('.controls-wrapper')[idx];
+        const offsetLeft = trackRect.left - wrapper.getBoundingClientRect().left;
+        heart.style.left = `calc(${offsetLeft}px + ${val / MAX_VAL * trackRect.width}px)`;
         text.textContent = val;
+        checkCelebration();
     }
 
-    window.onload = () => {
-        setTimeout(() => { for(let i=0; i<state.length; i++) updateUI(i, 0); }, 150);
-    };
+    function hideCelebration(immediate = false) {
+        const overlay = document.getElementById('celebration-overlay');
+        if (immediate) {
+            overlay.classList.remove('show', 'hiding');
+        } else {
+            // ふわっと消すクラスを付与
+            overlay.classList.add('hiding');
+            // アニメーションが終わる頃に完全にクリア
+            setTimeout(() => {
+                overlay.classList.remove('show', 'hiding');
+            }, 1200);
+        }
+        if (celebrationTimer) { clearTimeout(celebrationTimer); celebrationTimer = null; }
+    }
+
+    function checkCelebration() {
+        if (!isInitialized || isResetting || activeIdx !== null) return; 
+        const overlay = document.getElementById('celebration-overlay');
+        const allZero = state.every(v => v === 0);
+        
+        if (allZero) {
+            if (!overlay.classList.contains('show')) {
+                overlay.classList.remove('hiding');
+                spawnParticles();
+                overlay.classList.add('show');
+                // 3.5秒後にふわっと消し始める
+                celebrationTimer = setTimeout(() => {
+                    hideCelebration(false);
+                }, 3500);
+            }
+        } else {
+            hideCelebration(true);
+        }
+    }
+
+    window.onload = () => { setTimeout(() => { for(let i=0; i<state.length; i++) updateUI(i, 0); isInitialized = true; }, 150); };
 </script>
 </body>
 </html>
