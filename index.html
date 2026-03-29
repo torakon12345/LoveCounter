@@ -115,11 +115,15 @@
 
         .sort-handle {
             display: flex; flex-direction: column; gap: 3px;
-            margin-right: 11px; flex-shrink: 0; padding: 2px 3px;
+            margin-right: 11px; flex-shrink: 0; padding: 4px 6px;
+            cursor: grab; border-radius: 6px;
+            transition: background 0.15s;
         }
+        .sort-handle:active { cursor: grabbing; }
+        .sort-handle:hover { background: rgba(0,0,0,0.07); }
         .sort-handle span {
-            display: block; width: 16px; height: 2px;
-            background: #ccc; border-radius: 2px;
+            display: block; width: 18px; height: 2.5px;
+            background: #aaa; border-radius: 2px;
         }
         .sort-checkbox { width: 20px; height: 20px; accent-color: var(--reset-color); margin-right: 10px; cursor: pointer; flex-shrink: 0; }
         .sort-heart { width: 22px; height: 22px; margin-right: 10px; flex-shrink: 0; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
@@ -252,6 +256,11 @@
                 <span style="font-size:22px; margin-right:12px; line-height:1;">🎉</span>
                 <span class="config-label-text">ライブ成功演出</span>
             </label>
+            <label class="config-item">
+                <input type="checkbox" id="sound-toggle" checked onchange="updateSoundSetting(this.checked)">
+                <span style="font-size:22px; margin-right:12px; line-height:1;">🔊</span>
+                <span class="config-label-text">成功サウンド</span>
+            </label>
 
             <!-- 成功画像設定 -->
             <div class="img-setting-box">
@@ -330,6 +339,28 @@
         || new Array(rowConfigs.length).fill(true);
 
     let celebrationEnabled = localStorage.getItem('ll_celebration_enabled') !== 'false';
+    let soundEnabled       = localStorage.getItem('ll_sound_enabled')       !== 'false';
+
+    // ── 効果音 ───────────────────────────────────────────────────
+    let successAudio = null;
+    function loadSuccessAudio() {
+        successAudio = new Audio('success.mp3');
+        successAudio.preload = 'auto';
+    }
+    function playSuccessSound() {
+        if (!soundEnabled) return;
+        try {
+            if (!successAudio) loadSuccessAudio();
+            successAudio.currentTime = 0;
+            successAudio.play().catch(() => {});
+        } catch(e) {}
+    }
+    loadSuccessAudio();
+
+    window.updateSoundSetting = function(enabled) {
+        soundEnabled = enabled;
+        localStorage.setItem('ll_sound_enabled', enabled ? 'true' : 'false');
+    };
 
     const board = document.getElementById('board');
     let activeSliderIdx = null;
@@ -399,6 +430,7 @@
         const modal = document.getElementById('settings-modal');
         if (show) {
             document.getElementById('celebration-toggle').checked = celebrationEnabled;
+            document.getElementById('sound-toggle').checked = soundEnabled;
             updateImgPreview();
             rebuildSortList();
             modal.style.display = 'flex';
@@ -511,6 +543,9 @@
                 <svg class="sort-heart" viewBox="0 0 32 32">
                     <path fill="${shadow}" transform="translate(1.5,1.5)" d="${HEART_SVG_PATH}"/>
                     <path fill="${primary}" d="${HEART_SVG_PATH}"/>
+                    <text x="16" y="21" text-anchor="middle" font-size="11"
+                          font-family="sans-serif" font-weight="900" fill="white"
+                          style="pointer-events:none;">${config.symbol}</text>
                 </svg>
                 <span class="sort-label">${config.name}</span>`;
             ul.appendChild(li);
@@ -591,10 +626,11 @@
             applyRowOrder();
         }
 
-        // 行全体をドラッグ対象に（チェックボックスは除外）
+        // ハンドルのみドラッグ開始対象（チェックボックス・その他は除外）
         ul.querySelectorAll('.sort-item').forEach(li => {
-            li.addEventListener('mousedown',  (e) => onDragStart(e, li));
-            li.addEventListener('touchstart', (e) => onDragStart(e, li), { passive: true });
+            const handle = li.querySelector('.sort-handle');
+            handle.addEventListener('mousedown',  (e) => { e.preventDefault(); onDragStart(e, li); });
+            handle.addEventListener('touchstart', (e) => onDragStart(e, li), { passive: true });
         });
         document.addEventListener('mousemove', onDragMove);
         document.addEventListener('mouseup',   onDragEnd);
@@ -787,6 +823,7 @@
             if (!overlay.classList.contains('show')) {
                 spawnParticles();
                 overlay.classList.add('show');
+                playSuccessSound();
                 if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             }
         } else {
