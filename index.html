@@ -379,20 +379,17 @@
     let soundEnabled       = localStorage.getItem('ll_sound_enabled')       !== 'false';
 
     // ── 効果音 ───────────────────────────────────────────────────
-    let successAudio = null;
-    function loadSuccessAudio() {
-        successAudio = new Audio('success.mp3');
-        successAudio.preload = 'auto';
-    }
+    const successAudio = new Audio('success.mp3');
+    successAudio.preload = 'auto';
+    successAudio.load();
+
     function playSuccessSound() {
         if (!soundEnabled) return;
         try {
-            if (!successAudio) loadSuccessAudio();
             successAudio.currentTime = 0;
             successAudio.play().catch(() => {});
         } catch(e) {}
     }
-    loadSuccessAudio();
 
     window.updateSoundSetting = function(enabled) {
         soundEnabled = enabled;
@@ -843,6 +840,8 @@
             heart.style.left = `${trackLeft + (Math.min(val, MAX_VAL) / MAX_VAL) * trackWidth}px`;
         }
         updateStatusDisplay();
+        // 全員ゼロになった瞬間に即座に音を鳴らす（checkCelebrationより先）
+        if (shouldCheck && state.every(v => v === 0)) playSuccessSound();
         if (shouldCheck) checkCelebration();
     }
 
@@ -918,7 +917,6 @@
             if (!overlay.classList.contains('show')) {
                 spawnParticles();
                 overlay.classList.add('show');
-                playSuccessSound();
                 if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             }
         } else {
