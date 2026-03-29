@@ -6,6 +6,7 @@
     <title>ラブカウンタ！</title>
     <link rel="icon" href="favicon.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800;900&family=JetBrains+Mono:wght@800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <style>
         :root {
             --bg-grad-start: #f8fbff;
@@ -74,20 +75,31 @@
         #settings-modal.show { display: flex; opacity: 1; }
         .settings-content {
             background: rgba(255,255,255,0.9); width: 85%; max-width: 320px;
-            padding: 30px 25px; border-radius: 28px;
+            padding: 20px 25px 30px; border-radius: 28px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.3);
             transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-            max-height: 90dvh; overflow-y: auto;
+            max-height: 90dvh; overflow-y: auto; position: relative;
         }
         #settings-modal.show .settings-content { transform: scale(1); }
+        .settings-close-x {
+            position: sticky; top: 0; float: right;
+            width: 32px; height: 32px; margin: -4px -4px 4px 0;
+            background: rgba(0,0,0,0.07); border: none; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; font-size: 16px; color: #666; line-height: 1;
+            touch-action: manipulation; flex-shrink: 0; z-index: 10;
+        }
+        .settings-close-x:active { background: rgba(0,0,0,0.13); }
         .settings-title { font-family: 'M PLUS Rounded 1c'; font-weight: 900; font-size: 20px; margin-bottom: 20px; text-align: center; color: #333; }
         .settings-divider { border: none; border-top: 1px solid rgba(0,0,0,0.08); margin: 14px 0 16px; }
         .settings-section-label { font-size: 11px; font-weight: 800; color: #999; letter-spacing: 0.1em; margin-bottom: 10px; }
-        .close-settings-btn { width: 100%; padding: 14px; background: #eee; border: none; border-radius: 14px; margin-top: 20px; font-weight: 900; font-size: 16px; color: #555; cursor: pointer; transition: background 0.2s; touch-action: manipulation; }
+        .close-settings-btn { width: 100%; padding: 14px; background: #555; border: none; border-radius: 14px; margin-top: 20px; font-weight: 900; font-size: 16px; color: #fff; cursor: pointer; transition: background 0.2s; touch-action: manipulation; }
+        .close-settings-btn:active { background: #333; }
 
         /* 演出チェックボックス行 */
         .config-item { display: flex; align-items: center; margin-bottom: 14px; cursor: pointer; user-select: none; }
         .config-item input { width: 22px; height: 22px; accent-color: var(--reset-color); margin-right: 15px; cursor: pointer; flex-shrink: 0; }
+        .config-icon { font-size: 18px; color: #e93382; margin-right: 13px; width: 22px; text-align: center; flex-shrink: 0; }
         .config-label-text { font-weight: 800; font-size: 15px; color: #444; flex: 1; }
 
         /* 並び替えリスト */
@@ -102,7 +114,25 @@
             position: relative;
         }
         .sort-item:active { cursor: grabbing; }
-        .sort-item.dragging { opacity: 0.3; cursor: grabbing; }
+        .sort-item.dragging { opacity: 0.2; cursor: grabbing; pointer-events: none; }
+        .sort-item.drop-highlight {
+            background: rgba(233,51,130,0.12);
+            border-color: rgba(233,51,130,0.4);
+            transition: background 0.05s, border-color 0.05s;
+        }
+
+        /* フローティングクローン */
+        .sort-clone {
+            position: fixed; left: 0; top: 0;
+            pointer-events: none; z-index: 9999;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+            display: flex; align-items: center;
+            padding: 9px 10px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
 
         /* 挿入ライン */
         .drop-line {
@@ -128,7 +158,8 @@
         .sort-checkbox { width: 20px; height: 20px; accent-color: var(--reset-color); margin-right: 10px; cursor: pointer; flex-shrink: 0; }
         .sort-heart { width: 22px; height: 22px; margin-right: 10px; flex-shrink: 0; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
         .sort-label { font-weight: 800; font-size: 14px; color: #444; flex: 1; }
-        .reset-order-btn { width: 100%; padding: 11px; background: rgba(0,0,0,0.05); border: none; border-radius: 12px; margin-top: 10px; font-weight: 800; font-size: 13px; color: #888; cursor: pointer; transition: background 0.2s; touch-action: manipulation; letter-spacing: 0.05em; }
+        .reset-order-btn { width: 100%; padding: 11px; background: rgba(0,0,0,0.12); border: none; border-radius: 12px; margin-top: 10px; font-weight: 800; font-size: 13px; color: #444; cursor: pointer; transition: background 0.2s; touch-action: manipulation; letter-spacing: 0.05em; }
+        .reset-order-btn:active { background: rgba(0,0,0,0.2); }
 
         /* 成功オーバーレイ */
         #celebration-overlay {
@@ -184,13 +215,13 @@
         }
         .heart.sliding { transition: none; }
         .heart-svg { position: absolute; width: 100%; height: 100%; pointer-events: none; }
-        .heart-inner-container { display: flex; flex-direction: column; align-items: center; position: relative; z-index: 21; margin-left: 2px; pointer-events: none; }
-        .surplus-label { font-size: 8px; color: white; font-weight: 900; margin-bottom: -4px; display: none; pointer-events: none; }
-        .heart-number { color: white; font-family: 'JetBrains Mono', monospace; font-size: clamp(20px,6vw,24px); font-weight: 800; user-select: none; pointer-events: none; }
+        .heart-inner-container { display: flex; flex-direction: column; align-items: center; position: relative; z-index: 21; margin-left: 2px; margin-top: 4px; pointer-events: none; }
+        .surplus-label { font-size: 9px; color: white; font-weight: 900; letter-spacing: 0.04em; display: none; pointer-events: none; line-height: 1; margin-bottom: -1px; margin-top: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+        .heart-number { color: white; font-family: 'JetBrains Mono', monospace; font-size: clamp(20px,6vw,24px); font-weight: 800; user-select: none; pointer-events: none; line-height: 1; text-shadow: 0 1px 4px rgba(0,0,0,0.2); }
         .heart.is-surplus .surplus-label { display: block; }
         .heart.is-surplus .heart-number { font-size: 18px; }
-        .symbol-badge { position: absolute; bottom: 6px; right: 6px; width: 18px; height: 18px; background: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 22; pointer-events: none; }
-        .symbol { font-size: 11px; font-weight: 900; color: var(--primary); pointer-events: none; }
+        .symbol-badge { position: absolute; bottom: 5px; right: 4px; min-width: 18px; height: 16px; padding: 0 3px; background: white; border-radius: 8px; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 22; pointer-events: none; box-sizing: border-box; }
+        .symbol { font-size: 9px; font-weight: 900; color: var(--primary); pointer-events: none; letter-spacing: -0.02em; }
 
         /* ボトム */
         .bottom-actions { margin-top: auto; padding: 10px 0 30px; display: flex; flex-direction: column; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); }
@@ -245,6 +276,7 @@
     <!-- 設定モーダル -->
     <div id="settings-modal">
         <div class="settings-content">
+            <button class="settings-close-x" onclick="toggleSettings(false)"><i class="fa-solid fa-xmark"></i></button>
             <div class="settings-title">表示設定</div>
             <div class="settings-section-label">カラーの順番・表示</div>
             <ul id="sort-list"></ul>
@@ -253,12 +285,12 @@
             <div class="settings-section-label">演出</div>
             <label class="config-item">
                 <input type="checkbox" id="celebration-toggle" checked onchange="updateCelebrationSetting(this.checked)">
-                <span style="font-size:22px; margin-right:12px; line-height:1;">🎉</span>
+                <i class="fa-solid fa-wand-magic-sparkles config-icon"></i>
                 <span class="config-label-text">ライブ成功演出</span>
             </label>
             <label class="config-item">
                 <input type="checkbox" id="sound-toggle" checked onchange="updateSoundSetting(this.checked)">
-                <span style="font-size:22px; margin-right:12px; line-height:1;">🔊</span>
+                <i class="fa-solid fa-volume-high config-icon"></i>
                 <span class="config-label-text">成功サウンド</span>
             </label>
 
@@ -553,29 +585,53 @@
         attachSortDrag(ul);
     }
 
-    // ── ドラッグ並び替え（挿入ライン方式）────────────────────────
+    // ── ドラッグ並び替え（フローティングクローン＋挿入ライン）──────
     function attachSortDrag(ul) {
-        let dragEl      = null;
-        let dropLine    = null;  // 挿入ラインDOM
-        let dropBefore  = null;  // null = 末尾、それ以外 = その要素の前に挿入
+        let dragEl     = null;
+        let clone      = null;
+        let dropLine   = null;
+        let dropBefore = null;
+        let offsetY    = 0;
 
         function getItems() {
             return [...ul.querySelectorAll('.sort-item')];
         }
 
-        function createDropLine() {
-            dropLine = document.createElement('div');
-            dropLine.className = 'drop-line';
-        }
         function removeDropLine() {
             if (dropLine && dropLine.parentNode) dropLine.parentNode.removeChild(dropLine);
         }
 
         function onDragStart(e, li) {
             if (e.target.tagName === 'INPUT') return;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const rect = li.getBoundingClientRect();
+            offsetY = clientY - rect.top;
+
             dragEl = li;
             li.classList.add('dragging');
-            createDropLine();
+
+            // 挿入ライン生成
+            dropLine = document.createElement('div');
+            dropLine.className = 'drop-line';
+
+            // クローン：ラベルテキストとハートSVGだけをコピーして幅固定
+            clone = document.createElement('div');
+            clone.className = 'sort-clone';
+            clone.style.width = rect.width + 'px';
+
+            // ハートSVGとラベルだけ取り出してコピー
+            const heartSvg  = li.querySelector('.sort-heart');
+            const labelSpan = li.querySelector('.sort-label');
+            if (heartSvg)  clone.appendChild(heartSvg.cloneNode(true));
+            if (labelSpan) {
+                const lbl = labelSpan.cloneNode(true);
+                lbl.style.cssText = 'font-weight:800;font-size:14px;color:#444;margin-left:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+                clone.appendChild(lbl);
+            }
+
+            clone.style.transform = `translate(${rect.left}px, ${clientY - offsetY}px)`;
+            document.body.appendChild(clone);
+
             e.stopPropagation();
         }
 
@@ -585,18 +641,20 @@
             e.stopPropagation();
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-            // dragEl 以外のアイテムでどこに挿入するか判定
+            // クローンを指に追従
+            if (clone) {
+                const rect = dragEl.getBoundingClientRect();
+                clone.style.transform = `translate(${rect.left}px, ${clientY - offsetY}px)`;
+            }
+
+            // 挿入位置を判定
             const others = getItems().filter(el => el !== dragEl);
             dropBefore = null;
             for (const item of others) {
                 const r = item.getBoundingClientRect();
-                if (clientY < r.top + r.height / 2) {
-                    dropBefore = item;
-                    break;
-                }
+                if (clientY < r.top + r.height / 2) { dropBefore = item; break; }
             }
 
-            // 挿入ラインを適切な位置に移動
             removeDropLine();
             if (dropBefore) {
                 ul.insertBefore(dropLine, dropBefore);
@@ -611,22 +669,26 @@
             dragEl.classList.remove('dragging');
             removeDropLine();
             dropLine = null;
+            if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
+            clone = null;
 
-            // 確定：dropBefore の位置に dragEl を挿入
+            // 確定挿入
             if (dropBefore) {
                 ul.insertBefore(dragEl, dropBefore);
             } else {
                 ul.appendChild(dragEl);
             }
 
-            rowOrder = getItems().map(li => parseInt(li.dataset.configIdx));
-            localStorage.setItem('ll_row_order', JSON.stringify(rowOrder));
+            // ドロップしたアイテムをハイライトして「ここに入った」を明示
+            const droppedEl = dragEl;
             dragEl     = null;
             dropBefore = null;
+            droppedEl.classList.add('drop-highlight');
+            setTimeout(() => droppedEl.classList.remove('drop-highlight'), 800);
             applyRowOrder();
         }
 
-        // ハンドルのみドラッグ開始対象（チェックボックス・その他は除外）
+        // ハンドルのみドラッグ開始
         ul.querySelectorAll('.sort-item').forEach(li => {
             const handle = li.querySelector('.sort-handle');
             handle.addEventListener('mousedown',  (e) => { e.preventDefault(); onDragStart(e, li); });
