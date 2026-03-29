@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ラブカウンタ！ DX</title>
+    <title>ラブカウンタ！</title>
     <link rel="icon" href="favicon.png" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800;900&family=JetBrains+Mono:wght@800&display=swap" rel="stylesheet">
     <style>
@@ -33,24 +33,73 @@
             background: linear-gradient(135deg, var(--bg-grad-start) 0%, var(--bg-grad-end) 100%);
             display: flex; justify-content: center; align-items: center;
             min-height: 100vh; margin: 0; padding: 0;
-            box-sizing: border-box; overflow-x: hidden;
+            box-sizing: border-box; touch-action: none; overflow: hidden;
         }
 
         .board-container {
             background: var(--glass-bg);
             backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            width: 100%; max-width: 480px; min-height: 100vh;
+            width: 100%; max-width: 480px; height: 100vh;
             display: flex; flex-direction: column;
             padding: calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 10px);
             box-sizing: border-box; position: relative;
         }
 
-        /* セレブレーションオーバーレイ */
+        /* ヘッダー周りの調整 */
+        .board-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 10px 15px 10px; margin-bottom: 5px; 
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08); min-height: 40px; 
+            position: relative;
+        }
+        .board-title-image { max-width: 200px; width: 60vw; height: auto; display: block; }
+
+        /* フラットな設定ボタン */
+        .settings-trigger {
+            width: 40px; height: 40px; display: flex; justify-content: center; align-items: center;
+            background: transparent; border-radius: 12px; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .settings-trigger:active { background: rgba(0,0,0,0.05); }
+        .settings-icon-svg { width: 22px; height: 22px; fill: #555; }
+
+        /* 設定パネル */
+        #settings-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 3000; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s;
+        }
+        #settings-modal.show { display: flex; opacity: 1; }
+        
+        .settings-content {
+            background: rgba(255,255,255,0.9); width: 85%; max-width: 320px; padding: 30px 25px; border-radius: 28px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3); transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #settings-modal.show .settings-content { transform: scale(1); }
+        
+        .settings-title { font-family: 'M PLUS Rounded 1c'; font-weight: 900; font-size: 20px; margin-bottom: 25px; text-align: center; color: #333; }
+        
+        /* 設定内のリストスタイル */
+        .config-item { display: flex; align-items: center; margin-bottom: 16px; cursor: pointer; user-select: none; }
+        .config-item input { width: 22px; height: 22px; accent-color: var(--reset-color); margin-right: 15px; cursor: pointer; }
+        
+        /* 設定内のミニハート */
+        .mini-heart-preview { width: 24px; height: 24px; margin-right: 12px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1)); }
+        .config-label-text { font-weight: 800; font-size: 16px; color: #444; flex: 1; }
+
+        .close-settings-btn { 
+            width: 100%; padding: 14px; background: #eee; border: none; border-radius: 14px; 
+            margin-top: 20px; font-weight: 900; font-size: 16px; color: #555; cursor: pointer; transition: background 0.2s;
+        }
+        .close-settings-btn:active { background: #ddd; }
+
+        /* ライブ成功オーバーレイ */
         #celebration-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 2000; pointer-events: none;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            opacity: 0; background: rgba(0,0,0,0.4); transition: opacity 0.5s;
+            opacity: 0; background: rgba(0,0,0,0.7);
+            transition: opacity 0.5s ease;
         }
         #celebration-overlay.show { opacity: 1; pointer-events: auto; }
 
@@ -63,7 +112,7 @@
 
         .success-logo-text {
             font-family: 'M PLUS Rounded 1c', sans-serif;
-            font-size: clamp(40px, 10vw, 50px); font-weight: 900; color: #ffffff;
+            font-size: clamp(40px, 12vw, 54px); font-weight: 900; color: #ffffff;
             text-shadow: 0 0 10px var(--glow-color), 0 0 20px var(--glow-color);
             text-align: center;
         }
@@ -72,226 +121,247 @@
 
         .sc-particle { position: absolute; font-size: 24px; pointer-events: none; z-index: 2050; }
         @keyframes sc-particle-fly { 0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(1.3) rotate(var(--tr)); opacity: 0; } }
-
-        .board-header { display: flex; justify-content: center; align-items: center; padding-bottom: 15px; margin-bottom: 5px; border-bottom: 1px solid rgba(0, 0, 0, 0.08); }
-        .board-title-image { max-width: 200px; height: auto; }
-        .counters-stage { flex: 1; display: flex; flex-direction: column; gap: var(--row-gap); padding-top: 10px; }
-
-        /* ボタン・トラック */
-        .controls-wrapper { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; }
-        .step-btn { width: var(--btn-size); height: var(--btn-size); border-radius: 12px; border: 2px solid rgba(0,0,0,0.1); background: white; font-size: 20px; font-weight: 900; display: flex; justify-content: center; align-items: center; cursor: pointer; user-select: none; z-index: 10; }
-        .track { flex: 1; height: 14px; background-color: var(--track-bg); border-radius: 10px; position: relative; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; box-sizing: border-box; }
-        .track-dot { width: 4px; height: 4px; background-color: rgba(0, 0, 0, 0.08); border-radius: 50%; }
         
-        .heart { width: var(--heart-size); height: var(--heart-size); position: absolute; top: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; pointer-events: none; transition: left 0.15s cubic-bezier(0.18, 0.89, 0.32, 1.28); z-index: 15; }
-        .heart-svg { position: absolute; width: 100%; height: 100%; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
-        .heart-number { position: relative; z-index: 20; color: white; font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 800; margin-left: 2px; }
-        .symbol-badge { position: absolute; bottom: 6px; right: 6px; width: 18px; height: 18px; background: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 21; }
+        .counters-stage { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: var(--row-gap); }
+        .row-container.hidden { display: none; } /* 非表示用 */
+
+        .bottom-actions { margin-top: auto; padding: 20px 0 30px; display: flex; justify-content: center; border-top: 1px solid rgba(0, 0, 0, 0.05); }
+
+        .reset-btn { 
+            background: var(--reset-color); 
+            color: white; 
+            border: none; 
+            padding: 16px 55px; 
+            border-radius: 40px; 
+            font-weight: 900; 
+            font-size: 16px; 
+            box-shadow: 0 6px 0 var(--reset-shadow); 
+            cursor: pointer; 
+            transition: all 0.1s ease; 
+            letter-spacing: 0.15em; 
+            user-select: none; 
+        }
+        .reset-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--reset-shadow); }
+
+        .row-container { width: 100%; }
+        .controls-wrapper { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; }
+        .step-btn { width: var(--btn-size); height: var(--btn-size); border-radius: 12px; border: 2px solid rgba(0,0,0,0.1); background: white; color: #333; font-size: 20px; font-weight: 900; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.1s; user-select: none; position: relative; z-index: 10; }
+        .track { flex: 1; height: 14px; background-color: var(--track-bg); border-radius: 10px; position: relative; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; box-sizing: border-box; z-index: 5; }
+        .track-dot { width: 4px; height: 4px; background-color: rgba(0, 0, 0, 0.08); border-radius: 50%; pointer-events: none; }
+        .heart { width: var(--heart-size); height: var(--heart-size); position: absolute; top: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; pointer-events: none; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15)); transition: left 0.15s cubic-bezier(0.18, 0.89, 0.32, 1.28); z-index: 999; }
+        .heart.sliding { transition: none; }
+        .heart-svg { position: absolute; width: 100%; height: 100%; }
+        .heart-number { position: relative; z-index: 1000; color: white; font-family: 'JetBrains Mono', monospace; font-size: clamp(22px, 6.5vw, 26px); font-weight: 800; margin-left: 3px; user-select: none; }
+        .symbol-badge { position: absolute; bottom: 6px; right: 6px; width: 18px; height: 18px; background: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 1001; }
         .symbol { font-size: 11px; font-weight: 900; color: var(--primary); }
-
-        /* 下部アクション */
-        .bottom-actions { margin-top: 20px; padding: 20px 0; display: flex; flex-direction: column; align-items: center; border-top: 1px solid rgba(0, 0, 0, 0.05); }
-        .reset-btn { background: var(--reset-color); color: white; border: none; padding: 14px 40px; border-radius: 40px; font-weight: 900; box-shadow: 0 5px 0 var(--reset-shadow); cursor: pointer; }
-        .reset-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--reset-shadow); }
-
-        /* 管理用パネル */
-        .admin-panel { width: 100%; margin-top: 30px; padding: 20px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); box-sizing: border-box; }
-        .admin-input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 14px; }
-        .save-btn { width: 100%; padding: 12px; background: #333; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        .card-list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 12px; }
     </style>
 </head>
 <body>
 
 <div class="board-container">
-    <div id="celebration-overlay" onclick="hideCelebration(true)">
+
+    <div id="settings-modal">
+        <div class="settings-content">
+            <div class="settings-title">表示設定</div>
+            <div id="settings-list"></div>
+            <button class="close-settings-btn" onclick="toggleSettings(false)">閉じる</button>
+        </div>
+    </div>
+
+    <div id="celebration-overlay" onclick="hideCelebration()">
         <div id="particles-container"></div>
-        <img id="success-card-img" src="" class="success-card-display">
-        <div class="success-logo-text">LIVE SUCCESS!</div>
-        <p style="color:white; margin-top:10px;">タップで閉じる</p>
+        <img id="success-card-img" src="success.png" class="success-card-display" onerror="this.style.display='none'">
+        <div class="success-logo-text">ライブ成功</div>
+        <p style="color:white; margin-top:20px; font-size:12px; opacity:0.8;">タップして閉じる</p>
     </div>
 
     <div class="board-header">
-        <h2 style="color:#e6007e; font-family:'M PLUS Rounded 1c'; margin:0;">HEART COUNTER</h2>
-    </div>
-
-    <div class="counters-stage" id="board"></div>
-
-    <div class="bottom-actions">
-        <button class="reset-btn" onclick="allReset()">ALL RESET</button>
-    </div>
-
-    <div class="admin-panel">
-        <h3 style="margin:0 0 15px 0; font-size:16px;">🎴 ライブカード登録</h3>
-        <input type="text" id="reg-card-name" class="admin-input" placeholder="カード名（例：Landing action）">
-        <input type="text" id="reg-card-no" class="admin-input" placeholder="カード番号（例：PL!S-bp5-020-L）">
-        <input type="text" id="reg-card-url" class="admin-input" placeholder="画像URL（直接入力する場合）">
-        <button class="save-btn" onclick="saveCurrentToDB()">現在の数値で登録保存</button>
+        <div style="width:40px;"></div> 
         
-        <div id="card-list-display" style="margin-top:20px;">
-            <strong style="font-size:12px;">登録済みリスト:</strong>
-            <div id="list-items" style="max-height:100px; overflow-y:auto;"></div>
+        <img src="counter.png" alt="HEART COUNTER" class="board-title-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <h2 style="display:none; color:#e6007e; font-family:'M PLUS Rounded 1c'; margin:0; font-size:22px;">HEART COUNTER</h2>
+
+        <div class="settings-trigger" onclick="toggleSettings(true)" title="設定">
+            <svg class="settings-icon-svg" viewBox="0 0 24 24">
+                <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+            </svg>
         </div>
     </div>
+    
+    <div class="counters-stage" id="board"></div>
+    <div class="bottom-actions"><button class="reset-btn" onclick="allReset()">ALL RESET</button></div>
 </div>
 
 <script>
+    // ハートのSVGパス（共通）
+    const HEART_SVG_PATH = "M16 28.1a.5.5 0 01-.3-.1C12 25.3 4 19 4 12.5A6.5 6.5 0 0110.5 6a6.5 6.5 0 015.5 3 6.5 6.5 0 015.5-3 6.5 6.5 0 016.5 6.5c0 6.5-8 12.8-11.7 15.5a.5.5 0 01-.3.1z";
+
     const rowConfigs = [
-        { color: 'pink', symbol: '＋' }, { color: 'green', symbol: '＊' }, 
-        { color: 'lightblue', symbol: '－' }, { color: 'red', symbol: '♥' }, 
-        { color: 'yellow', symbol: '✦' }, { color: 'purple', symbol: '◆' }, 
-        { color: 'gray', symbol: 'ALL' }
+        { color: 'pink', symbol: '＋', name: 'ピンク' }, 
+        { color: 'green', symbol: '＊', name: 'グリーン' }, 
+        { color: 'lightblue', symbol: '－', name: 'ブルー' }, 
+        { color: 'red', symbol: '♥', name: 'レッド' }, 
+        { color: 'yellow', symbol: '✦', name: 'イエロー' }, 
+        { color: 'purple', symbol: '◆', name: 'パープル' }, 
+        { color: 'gray', symbol: 'ALL', name: 'オール' }
     ];
     const MAX_VAL = 15;
+    const ALL_IDX = 6;
     const state = new Array(rowConfigs.length).fill(0);
-    let CARD_DB = JSON.parse(localStorage.getItem('ll_card_db')) || [];
-    let isInitialized = false;
-    let isResetting = false;
-
-    // --- ボード構築 ---
+    const visibleRows = new Array(rowConfigs.length).fill(true); // 表示フラグ
     const board = document.getElementById('board');
-    rowConfigs.forEach((config, idx) => {
-        const row = document.createElement('div');
-        row.className = `row-container color-row-${idx}`;
-        let dotsHtml = ''; 
-        for(let i=0; i<=MAX_VAL; i++) { 
-            dotsHtml += (i % 5 === 0) ? `<div class="track-dot"></div>` : `<div style="width:4px;"></div>`; 
+    let activeIdx = null; let isInitialized = false; let isResetting = false;
+
+    // 設定モーダルの表示切り替え（アニメーション用クラス追加）
+    window.toggleSettings = function(show) {
+        const modal = document.getElementById('settings-modal');
+        if (show) {
+            modal.style.display = 'flex';
+            // 描画を待ってからクラスを追加しないとアニメーションしない
+            requestAnimationFrame(() => {
+                modal.classList.add('show');
+            });
+        } else {
+            modal.classList.remove('show');
+            // アニメーション終了後に非表示にする
+            setTimeout(() => {
+                if (!modal.classList.contains('show')) {
+                    modal.style.display = 'none';
+                }
+            }, 300);
         }
-        row.innerHTML = `
-            <div class="controls-wrapper">
-                <div class="step-btn" onclick="step(${idx}, -1)">−</div>
-                <div class="track" id="track-${idx}">${dotsHtml}
-                    <div class="heart" id="heart-${idx}">
-                        <span class="heart-number" id="val-${idx}">0</span>
-                        <div class="symbol-badge"><span class="symbol">${config.symbol}</span></div>
-                        <svg class="heart-svg" viewBox="0 0 32 32">
-                            <style>#path-main-${idx} { fill: var(--primary); } #path-shadow-${idx} { fill: var(--shadow); }</style>
-                            <path id="path-shadow-${idx}" transform="translate(2, 2)" d="M16 28.1a.5.5 0 01-.3-.1C12 25.3 4 19 4 12.5A6.5 6.5 0 0110.5 6a6.5 6.5 0 015.5 3 6.5 6.5 0 015.5-3 6.5 6.5 0 016.5 6.5c0 6.5-8 12.8-11.7 15.5a.5.5 0 01-.3.1z"/>
-                            <path id="path-main-${idx}" d="M16 28.1a.5.5 0 01-.3-.1C12 25.3 4 19 4 12.5A6.5 6.5 0 0110.5 6a6.5 6.5 0 015.5 3 6.5 6.5 0 015.5-3 6.5 6.5 0 016.5 6.5c0 6.5-8 12.8-11.7 15.5a.5.5 0 01-.3.1z"/>
-                        </svg>
-                    </div>
-                </div>
-                <div class="step-btn" onclick="step(${idx}, 1)">＋</div>
-            </div>`;
-        board.appendChild(row);
-    });
-
-    // --- カウンター操作 ---
-    window.step = function(idx, delta) {
-        let newVal = state[idx] + delta;
-        newVal = Math.max(0, Math.min(MAX_VAL, newVal));
-        updateUI(idx, newVal);
     };
 
-    function updateUI(idx, val) {
-        state[idx] = val;
-        const heart = document.getElementById(`heart-${idx}`);
-        const track = document.getElementById(`track-${idx}`);
-        const trackWidth = track.clientWidth - 10; // 遊び分
-        heart.style.left = `${(val / MAX_VAL) * 100}%`;
-        document.getElementById(`val-${idx}`).textContent = val;
-        if (isInitialized && !isResetting) checkCelebration();
-    }
-
-    window.allReset = function() {
-        isResetting = true;
-        for(let i=0; i<state.length; i++) updateUI(i, 0);
-        hideCelebration(true);
-        setTimeout(() => { isResetting = false; }, 100);
-    };
-
-    // --- 成功判定ロジック ---
-    function checkCelebration() {
-        const overlay = document.getElementById('celebration-overlay');
-        
-        // 全項目が0の時は判定しない
-        if (state.every(v => v === 0)) return;
-
-        // DB内のカードと照合
-        const foundCard = CARD_DB.find(card => {
-            // 条件：登録された全ての必要数と現在の数値が一致
-            return Object.keys(card.req).every(idx => state[idx] === card.req[idx]);
-        });
-
-        if (foundCard) {
-            if (!overlay.classList.contains('show')) {
-                document.getElementById('success-card-img').src = foundCard.img;
-                overlay.classList.add('show');
-                spawnParticles();
-            }
-        }
-    }
-
-    function hideCelebration(immediate) {
-        document.getElementById('celebration-overlay').classList.remove('show');
-    }
-
-    // --- カード登録機能 ---
-    window.saveCurrentToDB = function() {
-        const name = document.getElementById('reg-card-name').value;
-        const no = document.getElementById('reg-card-no').value;
-        const url = document.getElementById('reg-card-url').value;
-        
-        if (!name) return alert("名前を入力してください");
-
-        const req = {};
-        state.forEach((v, i) => { if(v > 0) req[i] = v; });
-        
-        if (Object.keys(req).length === 0) return alert("カウンターをセットしてください");
-
-        let img = url;
-        if (!img && no) img = `https://llofficial-cardgame.com/wordpress/wp-content/images/cardlist/BP05/${no}.png`;
-        if (!img) return alert("番号かURLが必要です");
-
-        CARD_DB.push({ name, no, req, img });
-        localStorage.setItem('ll_card_db', JSON.stringify(CARD_DB));
-        alert("登録しました！");
-        updateList();
-    };
-
-    function updateList() {
-        const container = document.getElementById('list-items');
-        container.innerHTML = CARD_DB.map((c, i) => `
-            <div class="card-list-item">
-                <span>${c.name}</span>
-                <button onclick="deleteCard(${i})" style="color:red; border:none; background:none;">削除</button>
-            </div>
-        `).join('');
-    }
-
-    window.deleteCard = function(i) {
-        CARD_DB.splice(i, 1);
-        localStorage.setItem('ll_card_db', JSON.stringify(CARD_DB));
-        updateList();
-    };
-
-    // --- 演出 ---
     function spawnParticles() {
         const container = document.getElementById('particles-container');
         container.innerHTML = '';
-        const colors = ['#f48fb1', '#D1B932', '#90caf9', '#ffffff'];
-        for (let i = 0; i < 30; i++) {
+        const glyphs = ['★', '♪', '✦', '✧', '♥'];
+        const colors = ['#f48fb1', '#D1B932', '#90caf9', '#ffffff', '#ffd54f'];
+        for (let i = 0; i < 40; i++) {
             const p = document.createElement('div');
-            p.className = 'sc-particle'; p.textContent = ['★', '♪', '♥'][Math.floor(Math.random()*3)];
-            p.style.color = colors[Math.floor(Math.random()*colors.length)];
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 100 + Math.random() * 200;
-            p.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
-            p.style.setProperty('--ty', `${Math.sin(angle) * dist}px`);
-            p.style.setProperty('--tr', `${Math.random() * 360}deg`);
-            p.style.animation = `sc-particle-fly 1s ease-out forwards`;
-            p.style.left = '50%'; p.style.top = '50%';
-            container.appendChild(p);
+            p.className = 'sc-particle'; p.textContent = glyphs[Math.floor(Math.random() * glyphs.length)];
+            p.style.color = colors[Math.floor(Math.random() * colors.length)];
+            const angle = Math.random() * Math.PI * 2; const dist = 100 + Math.random() * 250;
+            const tx = Math.cos(angle) * dist; const ty = Math.sin(angle) * dist; const tr = (Math.random() - 0.5) * 600;
+            p.style.setProperty('--tx', `${tx}px`); p.style.setProperty('--ty', `${ty}px`); p.style.setProperty('--tr', `${tr}deg`);
+            p.style.animation = `sc-particle-fly ${0.8 + Math.random() * 0.8}s ease-out forwards`;
+            p.style.left = '50%'; p.style.top = '50%'; container.appendChild(p);
         }
     }
 
-    window.onload = () => {
-        setTimeout(() => {
-            for(let i=0; i<state.length; i++) updateUI(i, 0);
-            isInitialized = true;
-            updateList();
-        }, 200);
+    // ローカルストレージから表示設定を読み込む
+    const savedVisibility = localStorage.getItem('ll_counter_visibility');
+    if (savedVisibility) {
+        const parsed = JSON.parse(savedVisibility);
+        parsed.forEach((v, i) => {
+            if (i < visibleRows.length) visibleRows[i] = v;
+        });
+    }
+
+    // 初期化：スライダーと設定リストの生成
+    const settingsList = document.getElementById('settings-list');
+    rowConfigs.forEach((config, idx) => {
+        // --- 1. スライダー行の生成 ---
+        const row = document.createElement('div');
+        row.className = `row-container color-row-${idx}`;
+        if (!visibleRows[idx]) row.classList.add('hidden'); // 初期設定で非表示ならクラス追加
+        row.id = `row-container-${idx}`;
+        let dotsHtml = ''; for(let i=0; i<=MAX_VAL; i++) { dotsHtml += (i % 5 === 0) ? `<div class="track-dot"></div>` : `<div style="width:4px;"></div>`; }
+        row.innerHTML = `
+            <div class="controls-wrapper" onmousedown="if(!event.target.classList.contains('step-btn')) startSlide(event, ${idx})" ontouchstart="if(!event.target.classList.contains('step-btn')) startSlide(event, ${idx})">
+                <div class="step-btn" onclick="event.stopPropagation(); step(${idx}, -1)">−</div>
+                <div class="track">${dotsHtml}</div>
+                <div class="heart" id="heart-${idx}">
+                    <span class="heart-number" id="val-${idx}">0</span>
+                    <div class="symbol-badge"><span class="${config.symbol === 'ALL' ? 'symbol symbol-all' : 'symbol'}">${config.symbol}</span></div>
+                    <svg class="heart-svg" viewBox="0 0 32 32">
+                        <style>#path-main-${idx} { fill: var(--primary); } #path-shadow-${idx} { fill: var(--shadow); }</style>
+                        <path id="path-shadow-${idx}" transform="translate(2, 2)" d="${HEART_SVG_PATH}"/>
+                        <path id="path-main-${idx}" d="${HEART_SVG_PATH}"/>
+                    </svg>
+                </div>
+                <div class="step-btn" onclick="event.stopPropagation(); step(${idx}, 1)">＋</div>
+            </div>`;
+        board.appendChild(row);
+
+        // --- 2. 設定チェックボックスの生成（ミニハート追加） ---
+        const configItem = document.createElement('label');
+        configItem.className = 'config-item';
+        
+        // 各行の色（--primary）を取得
+        const style = getComputedStyle(row);
+        const primaryColor = style.getPropertyValue('--primary').trim();
+        const shadowColor = style.getPropertyValue('--shadow').trim();
+
+        const isChecked = visibleRows[idx] ? 'checked' : '';
+        
+        configItem.innerHTML = `
+            <input type="checkbox" ${isChecked} onchange="updateVisibility(${idx}, this.checked)">
+            <svg class="mini-heart-preview" viewBox="0 0 32 32">
+                <path fill="${shadowColor}" transform="translate(1.5, 1.5)" d="${HEART_SVG_PATH}"/>
+                <path fill="${primaryColor}" d="${HEART_SVG_PATH}"/>
+            </svg>
+            <span class="config-label-text">${config.name}</span>
+        `;
+        settingsList.appendChild(configItem);
+    });
+
+    window.updateVisibility = function(idx, isVisible) {
+        visibleRows[idx] = isVisible;
+        document.getElementById(`row-container-${idx}`).classList.toggle('hidden', !isVisible);
+        // 設定を保存
+        localStorage.setItem('ll_counter_visibility', JSON.stringify(visibleRows));
     };
+
+    function startSlide(e, idx) { activeIdx = idx; document.getElementById(`heart-${idx}`).classList.add('sliding'); updateFromPos(e); window.addEventListener('mousemove', updateFromPos); window.addEventListener('touchmove', updateFromPos, { passive: false }); window.addEventListener('mouseup', stopSlide); window.addEventListener('touchend', stopSlide); }
+    function updateFromPos(e) { if (activeIdx === null) return; const track = document.querySelectorAll('.track')[activeIdx]; const rect = track.getBoundingClientRect(); const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX; let val = Math.round(((clientX - rect.left) / rect.width) * MAX_VAL); val = Math.max(0, Math.min(MAX_VAL, val)); if (state[activeIdx] !== val) updateUI(activeIdx, val, false); }
+    function stopSlide() { if (activeIdx !== null) { document.getElementById(`heart-${activeIdx}`).classList.remove('sliding'); checkCelebration(); } activeIdx = null; window.removeEventListener('mousemove', updateFromPos); window.removeEventListener('touchmove', updateFromPos); window.removeEventListener('mouseup', stopSlide); window.removeEventListener('touchend', stopSlide); }
+
+    window.allReset = function() { isResetting = true; hideCelebration(); for(let i=0; i<state.length; i++) updateUI(i, 0, false); checkCelebration(); setTimeout(() => { isResetting = false; }, 50); };
+
+    window.step = function(idx, delta) {
+        if (delta === -1 && state[idx] === 0 && idx !== ALL_IDX) {
+            if (state[ALL_IDX] > 0) {
+                updateUI(ALL_IDX, state[ALL_IDX] - 1, true);
+                if(navigator.vibrate) navigator.vibrate(30);
+            }
+        } else {
+            let newVal = Math.max(0, Math.min(MAX_VAL, state[idx] + delta));
+            if (state[idx] !== newVal) { updateUI(idx, newVal, true); }
+        }
+    };
+
+    function updateUI(idx, val, shouldCheck = true) {
+        state[idx] = val;
+        const heart = document.getElementById(`heart-${idx}`);
+        const track = document.querySelectorAll('.track')[idx];
+        const trackRect = track.getBoundingClientRect();
+        const wrapper = document.querySelectorAll('.controls-wrapper')[idx];
+        heart.style.left = `calc(${(trackRect.left - wrapper.getBoundingClientRect().left)}px + ${val / MAX_VAL * trackRect.width}px)`;
+        document.getElementById(`val-${idx}`).textContent = val;
+        if (shouldCheck) checkCelebration();
+    }
+
+    function hideCelebration() {
+        document.getElementById('celebration-overlay').classList.remove('show');
+    }
+
+    function checkCelebration() {
+        if (!isInitialized || isResetting) return; 
+        const isAllZero = state.every(v => v === 0);
+        const overlay = document.getElementById('celebration-overlay');
+        if (isAllZero) {
+            if (!overlay.classList.contains('show')) {
+                spawnParticles();
+                overlay.classList.add('show');
+                if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            }
+        } else {
+            hideCelebration();
+        }
+    }
+
+    window.onload = () => { setTimeout(() => { for(let i=0; i<state.length; i++) updateUI(i, 0, false); isInitialized = true; }, 150); };
 </script>
 </body>
 </html>
