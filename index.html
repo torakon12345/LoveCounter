@@ -79,7 +79,6 @@
         .config-label-text { font-weight: 800; font-size: 16px; color: #444; flex: 1; }
         .close-settings-btn { width: 100%; padding: 14px; background: #eee; border: none; border-radius: 14px; margin-top: 20px; font-weight: 900; font-size: 16px; color: #555; cursor: pointer; transition: background 0.2s; }
 
-        /* ライブ成功演出 */
         #celebration-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 2000; pointer-events: none;
@@ -95,16 +94,14 @@
         .sc-particle { position: absolute; font-size: 24px; pointer-events: none; z-index: 2050; }
         @keyframes sc-particle-fly { 0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(1.3) rotate(var(--tr)); opacity: 0; } }
 
-        /* カウンター表示 */
         .counters-stage { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: var(--row-gap); }
         .row-container.hidden { display: none; }
         .row-container { width: 100%; }
-        .controls-wrapper { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; }
+        .controls-wrapper { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; touch-action: none; }
         .step-btn { width: var(--btn-size); height: var(--btn-size); border-radius: 12px; border: 2px solid rgba(0,0,0,0.1); background: white; color: #333; font-size: 20px; font-weight: 900; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.1s; user-select: none; position: relative; z-index: 10; }
-        .track { flex: 1; height: 14px; background-color: var(--track-bg); border-radius: 10px; position: relative; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; box-sizing: border-box; z-index: 5; }
+        .track { flex: 1; height: 14px; background-color: var(--track-bg); border-radius: 10px; position: relative; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; box-sizing: border-box; z-index: 5; pointer-events: none; }
         .track-dot { width: 4px; height: 4px; background-color: rgba(0, 0, 0, 0.08); border-radius: 50%; pointer-events: none; }
         
-        /* ハート */
         .heart { width: var(--heart-size); height: var(--heart-size); position: absolute; top: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; pointer-events: none; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15)); transition: left 0.15s cubic-bezier(0.18, 0.89, 0.32, 1.28); z-index: 999; }
         .heart.sliding { transition: none; }
         .heart-svg { position: absolute; width: 100%; height: 100%; }
@@ -116,10 +113,8 @@
         .symbol-badge { position: absolute; bottom: 6px; right: 6px; width: 18px; height: 18px; background: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 1001; }
         .symbol { font-size: 11px; font-weight: 900; color: var(--primary); }
 
-        /* 下部エリア */
         .bottom-actions { margin-top: auto; padding: 10px 0 30px; display: flex; flex-direction: column; align-items: center; border-top: 1px solid rgba(0, 0, 0, 0.05); }
         
-        /* 合計余剰表示 */
         #total-surplus-display { 
             font-family: 'M PLUS Rounded 1c'; font-weight: 900; font-size: 18px; color: var(--reset-color); 
             margin-bottom: 15px; opacity: 0; transition: opacity 0.3s;
@@ -227,9 +222,9 @@
         row.id = `row-container-${idx}`;
         let dotsHtml = ''; for(let i=0; i<=MAX_VAL; i++) { dotsHtml += (i % 5 === 0) ? `<div class="track-dot"></div>` : `<div style="width:4px;"></div>`; }
         row.innerHTML = `
-            <div class="controls-wrapper" onmousedown="if(!event.target.classList.contains('step-btn')) startSlide(event, ${idx})" ontouchstart="if(!event.target.classList.contains('step-btn')) startSlide(event, ${idx})">
+            <div class="controls-wrapper" onmousedown="startSlide(event, ${idx})" ontouchstart="startSlide(event, ${idx})">
                 <div class="step-btn" onclick="event.stopPropagation(); step(${idx}, -1)">−</div>
-                <div class="track">${dotsHtml}</div>
+                <div class="track" id="track-${idx}">${dotsHtml}</div>
                 <div class="heart" id="heart-${idx}">
                     <div class="heart-inner-container">
                         <span class="surplus-label">余剰</span>
@@ -262,11 +257,45 @@
         visibleRows[idx] = isVisible;
         document.getElementById(`row-container-${idx}`).classList.toggle('hidden', !isVisible);
         localStorage.setItem('ll_counter_visibility', JSON.stringify(visibleRows));
+        // レイアウト変更後に位置を再計算
+        setTimeout(() => { for(let i=0; i<state.length; i++) updateUI(i, state[i], false); }, 50);
     };
 
-    function startSlide(e, idx) { activeIdx = idx; document.getElementById(`heart-${idx}`).classList.add('sliding'); updateFromPos(e); window.addEventListener('mousemove', updateFromPos); window.addEventListener('touchmove', updateFromPos, { passive: false }); window.addEventListener('mouseup', stopSlide); window.addEventListener('touchend', stopSlide); }
-    function updateFromPos(e) { if (activeIdx === null) return; const track = document.querySelectorAll('.track')[activeIdx]; const rect = track.getBoundingClientRect(); const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX; let val = Math.round(((clientX - rect.left) / rect.width) * MAX_VAL); val = Math.max(0, Math.min(MAX_VAL, val)); if (state[activeIdx] !== val) updateUI(activeIdx, val, true); }
-    function stopSlide() { if (activeIdx !== null) { document.getElementById(`heart-${activeIdx}`).classList.remove('sliding'); checkCelebration(); } activeIdx = null; window.removeEventListener('mousemove', updateFromPos); window.removeEventListener('touchmove', updateFromPos); window.removeEventListener('mouseup', stopSlide); window.removeEventListener('touchend', stopSlide); }
+    function startSlide(e, idx) { 
+        if (e.target.classList.contains('step-btn')) return;
+        activeIdx = idx; 
+        document.getElementById(`heart-${idx}`).classList.add('sliding'); 
+        updateFromPos(e); 
+        window.addEventListener('mousemove', updateFromPos); 
+        window.addEventListener('touchmove', updateFromPos, { passive: false }); 
+        window.addEventListener('mouseup', stopSlide); 
+        window.addEventListener('touchend', stopSlide); 
+    }
+    
+    function updateFromPos(e) { 
+        if (activeIdx === null) return; 
+        if (e.cancelable) e.preventDefault();
+        const track = document.getElementById(`track-${activeIdx}`); 
+        const rect = track.getBoundingClientRect(); 
+        const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX; 
+        
+        // トラックの端からの相対距離を計算
+        let val = Math.round(((clientX - rect.left) / rect.width) * MAX_VAL); 
+        val = Math.max(0, Math.min(MAX_VAL, val)); 
+        if (state[activeIdx] !== val) updateUI(activeIdx, val, true); 
+    }
+    
+    function stopSlide() { 
+        if (activeIdx !== null) { 
+            document.getElementById(`heart-${activeIdx}`).classList.remove('sliding'); 
+            checkCelebration(); 
+        } 
+        activeIdx = null; 
+        window.removeEventListener('mousemove', updateFromPos); 
+        window.removeEventListener('touchmove', updateFromPos); 
+        window.removeEventListener('mouseup', stopSlide); 
+        window.removeEventListener('touchend', stopSlide); 
+    }
 
     window.allReset = function() { isResetting = true; hideCelebration(); state = state.fill(0); for(let i=0; i<state.length; i++) updateUI(i, 0, false); checkCelebration(); updateSurplusDisplay(); setTimeout(() => { isResetting = false; }, 50); };
 
@@ -289,25 +318,29 @@
     function updateUI(idx, val, shouldCheck = true) {
         state[idx] = val;
         const heart = document.getElementById(`heart-${idx}`);
-        const track = document.querySelectorAll('.track')[idx];
+        const track = document.getElementById(`track-${idx}`);
+        const wrapper = track.parentElement;
+        
+        // 座標計算の精度を向上
         const trackRect = track.getBoundingClientRect();
-        const wrapper = document.querySelectorAll('.controls-wrapper')[idx];
+        const wrapperRect = wrapper.getBoundingClientRect();
         const valTxt = document.getElementById(`val-${idx}`);
 
         if (val < 0) {
             heart.classList.add('is-surplus');
             valTxt.textContent = Math.abs(val);
-            heart.style.left = `calc(${(trackRect.left - wrapper.getBoundingClientRect().left)}px)`;
+            heart.style.left = `${trackRect.left - wrapperRect.left}px`;
         } else {
             heart.classList.remove('is-surplus');
             valTxt.textContent = val;
-            heart.style.left = `calc(${(trackRect.left - wrapper.getBoundingClientRect().left)}px + ${Math.min(val, MAX_VAL) / MAX_VAL * trackRect.width}px)`;
+            const progress = Math.min(val, MAX_VAL) / MAX_VAL;
+            const leftPos = (trackRect.left - wrapperRect.left) + (progress * trackRect.width);
+            heart.style.left = `${leftPos}px`;
         }
         updateSurplusDisplay();
         if (shouldCheck) checkCelebration();
     }
 
-    // 余剰ハートの合計計算と表示更新
     function updateSurplusDisplay() {
         const totalSurplus = state.reduce((acc, val) => val < 0 ? acc + Math.abs(val) : acc, 0);
         const display = document.getElementById('total-surplus-display');
