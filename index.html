@@ -203,7 +203,7 @@
         /* インラインライブ成功 */
         #success-inline {
             font-family: 'M PLUS Rounded 1c'; font-weight: 900;
-            font-size: 16px; color: #888;
+            font-size: 16px; color: #e93382;
             display: none; letter-spacing: 0.05em;
         }
         #success-inline.show { display: block; }
@@ -304,8 +304,8 @@
 
     <div class="bottom-actions">
         <div class="info-row" id="info-row">
-            <div id="needed-display"  class="status-display">必要：0</div>
-            <div id="surplus-display" class="status-display">余剰：0</div>
+            <div id="needed-display"  class="status-display">必要ハート：0</div>
+            <div id="surplus-display" class="status-display">余剰ハート：0</div>
             <div id="success-inline">ライブ成功！</div>
         </div>
         <button class="reset-btn" onclick="allReset()">ALL RESET</button>
@@ -780,13 +780,14 @@
         });
 
         const isAllZero     = state.every(v => v === 0);
+        const isSuccess     = isAllZero && isInitialized && !isResetting;
         const infoRow       = document.getElementById('info-row');
         const neededDisp    = document.getElementById('needed-display');
         const surplusDisp   = document.getElementById('surplus-display');
         const successInline = document.getElementById('success-inline');
 
-        // 演出オフ＆全員ゼロ → インライン「ライブ成功！」
-        if (!celebrationEnabled && isAllZero && isInitialized && !isResetting) {
+        // 演出オフ＆成功 → インライン「ライブ成功！」のみ
+        if (!celebrationEnabled && isSuccess) {
             neededDisp.style.display  = 'none';
             surplusDisp.style.display = 'none';
             successInline.classList.add('show');
@@ -794,19 +795,38 @@
             return;
         }
 
-        // 通常表示
         successInline.classList.remove('show');
-        neededDisp.style.display  = '';
-        surplusDisp.style.display = '';
-        neededDisp.textContent  = `必要：${totalNeeded}`;
-        surplusDisp.textContent = `余剰：${totalSurplus}`;
 
-        if (totalNeeded > 0 || totalSurplus > 0) {
+        if (isSuccess) {
+            // 全員ゼロ（ライブ成功）→ 余剰ゼロなので「ライブ成功！」表示
+            neededDisp.style.display  = 'none';
+            surplusDisp.style.display = 'none';
+            successInline.classList.add('show');
             infoRow.classList.add('show');
-            neededDisp.style.opacity  = totalNeeded  > 0 ? '1' : '0.3';
-            surplusDisp.style.opacity = totalSurplus > 0 ? '1' : '0.3';
+        } else if (totalNeeded === 0 && totalSurplus === 0) {
+            // 初期状態（isInitializedがfalseなど）→ 必要ハートのみ表示
+            neededDisp.style.display  = '';
+            surplusDisp.style.display = 'none';
+            neededDisp.textContent    = `必要ハート：0`;
+            neededDisp.style.opacity  = '0.5';
+            infoRow.classList.add('show');
         } else {
-            infoRow.classList.remove('show');
+            // 通常カウント中 → 必要ハートのみ（余剰は無視）
+            // ただし余剰がある場合は余剰ハートのみ表示
+            if (totalSurplus > 0 && totalNeeded === 0) {
+                // 全員マイナス（余剰のみ）
+                neededDisp.style.display  = 'none';
+                surplusDisp.style.display = '';
+                surplusDisp.textContent   = `余剰ハート：${totalSurplus}`;
+                surplusDisp.style.opacity = '1';
+            } else {
+                // 必要ハートがある（通常）
+                neededDisp.style.display  = '';
+                surplusDisp.style.display = 'none';
+                neededDisp.textContent    = `必要ハート：${totalNeeded}`;
+                neededDisp.style.opacity  = '1';
+            }
+            infoRow.classList.add('show');
         }
     }
 
