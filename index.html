@@ -120,6 +120,11 @@
             border-color: rgba(233,51,130,0.4);
             transition: background 0.05s, border-color 0.05s;
         }
+        .sort-item.drop-highlight-fade {
+            background: rgba(0,0,0,0.04) !important;
+            border-color: transparent !important;
+            transition: background 1s ease, border-color 1s ease !important;
+        }
 
         /* フローティングクローン */
         .sort-clone {
@@ -679,13 +684,21 @@
                 ul.appendChild(dragEl);
             }
 
-            // ドロップしたアイテムをハイライトして「ここに入った」を明示
+            // rowOrderを更新してボードに反映
+            rowOrder = getItems().map(li => parseInt(li.dataset.configIdx));
+            localStorage.setItem('ll_row_order', JSON.stringify(rowOrder));
+            applyRowOrder();
+
+            // ハイライト：フェードアウトで自然に消える
             const droppedEl = dragEl;
             dragEl     = null;
             dropBefore = null;
             droppedEl.classList.add('drop-highlight');
-            setTimeout(() => droppedEl.classList.remove('drop-highlight'), 800);
-            applyRowOrder();
+            setTimeout(() => droppedEl.classList.add('drop-highlight-fade'), 50);
+            setTimeout(() => {
+                droppedEl.classList.remove('drop-highlight');
+                droppedEl.classList.remove('drop-highlight-fade');
+            }, 1200);
         }
 
         // ハンドルのみドラッグ開始
