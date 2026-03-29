@@ -18,6 +18,7 @@
             --glow-color: #D1B932;
             --reset-color: #E50080;
             --reset-shadow: #b30064;
+            --needed-color: #3fb155;
         }
 
         .color-row-0 { --primary: #e93382; --shadow: #b3205f; } 
@@ -115,11 +116,11 @@
 
         .bottom-actions { margin-top: auto; padding: 10px 0 30px; display: flex; flex-direction: column; align-items: center; border-top: 1px solid rgba(0, 0, 0, 0.05); }
         
-        #total-surplus-display { 
-            font-family: 'M PLUS Rounded 1c'; font-weight: 900; font-size: 18px; color: var(--reset-color); 
-            margin-bottom: 15px; opacity: 0; transition: opacity 0.3s;
-        }
-        #total-surplus-display.show { opacity: 1; }
+        .info-row { display: flex; gap: 20px; margin-bottom: 15px; opacity: 0; transition: opacity 0.3s; }
+        .info-row.show { opacity: 1; }
+        .status-display { font-family: 'M PLUS Rounded 1c'; font-weight: 900; font-size: 16px; }
+        #needed-display { color: var(--needed-color); }
+        #surplus-display { color: var(--reset-color); }
 
         .reset-btn { 
             background: var(--reset-color); color: white; border: none; padding: 16px 55px; border-radius: 40px; 
@@ -160,7 +161,10 @@
     <div class="counters-stage" id="board"></div>
 
     <div class="bottom-actions">
-        <div id="total-surplus-display">余剰ハート：0</div>
+        <div class="info-row" id="info-row">
+            <div id="needed-display" class="status-display">必要：0</div>
+            <div id="surplus-display" class="status-display">余剰：0</div>
+        </div>
         <button class="reset-btn" onclick="allReset()">ALL RESET</button>
     </div>
 </div>
@@ -257,7 +261,6 @@
         visibleRows[idx] = isVisible;
         document.getElementById(`row-container-${idx}`).classList.toggle('hidden', !isVisible);
         localStorage.setItem('ll_counter_visibility', JSON.stringify(visibleRows));
-        // レイアウト変更後に位置を再計算
         setTimeout(() => { for(let i=0; i<state.length; i++) updateUI(i, state[i], false); }, 50);
     };
 
@@ -278,8 +281,6 @@
         const track = document.getElementById(`track-${activeIdx}`); 
         const rect = track.getBoundingClientRect(); 
         const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX; 
-        
-        // トラックの端からの相対距離を計算
         let val = Math.round(((clientX - rect.left) / rect.width) * MAX_VAL); 
         val = Math.max(0, Math.min(MAX_VAL, val)); 
         if (state[activeIdx] !== val) updateUI(activeIdx, val, true); 
@@ -297,7 +298,7 @@
         window.removeEventListener('touchend', stopSlide); 
     }
 
-    window.allReset = function() { isResetting = true; hideCelebration(); state = state.fill(0); for(let i=0; i<state.length; i++) updateUI(i, 0, false); checkCelebration(); updateSurplusDisplay(); setTimeout(() => { isResetting = false; }, 50); };
+    window.allReset = function() { isResetting = true; hideCelebration(); state = state.fill(0); for(let i=0; i<state.length; i++) updateUI(i, 0, false); checkCelebration(); updateStatusDisplay(); setTimeout(() => { isResetting = false; }, 50); };
 
     window.step = function(idx, delta) {
         let current = state[idx];
@@ -315,40 +316,53 @@
         }
     };
 
-    function updateUI(idx, val, shouldCheck = true) {
+   function updateUI(idx, val, shouldCheck = true) {
         state[idx] = val;
         const heart = document.getElementById(`heart-${idx}`);
         const track = document.getElementById(`track-${idx}`);
-        const wrapper = track.parentElement;
-        
-        // 座標計算の精度を向上
-        const trackRect = track.getBoundingClientRect();
-        const wrapperRect = wrapper.getBoundingClientRect();
         const valTxt = document.getElementById(`val-${idx}`);
 
         if (val < 0) {
             heart.classList.add('is-surplus');
             valTxt.textContent = Math.abs(val);
-            heart.style.left = `${trackRect.left - wrapperRect.left}px`;
+            // トラックの左端に固定
+            heart.style.left = `${track.offsetLeft}px`;
         } else {
             heart.classList.remove('is-surplus');
             valTxt.textContent = val;
             const progress = Math.min(val, MAX_VAL) / MAX_VAL;
-            const leftPos = (trackRect.left - wrapperRect.left) + (progress * trackRect.width);
+            // 親要素（controls-wrapper）内での相対位置を計算
+            const leftPos = track.offsetLeft + (progress * track.offsetWidth);
             heart.style.left = `${leftPos}px`;
         }
-        updateSurplusDisplay();
+        updateStatusDisplay();
         if (shouldCheck) checkCelebration();
     }
 
-    function updateSurplusDisplay() {
-        const totalSurplus = state.reduce((acc, val) => val < 0 ? acc + Math.abs(val) : acc, 0);
-        const display = document.getElementById('total-surplus-display');
-        display.textContent = `余剰ハート：${totalSurplus}`;
-        if (totalSurplus > 0) {
-            display.classList.add('show');
+    function updateStatusDisplay() {
+        let totalNeeded = 0;
+        let totalSurplus = 0;
+        
+        state.forEach(val => {
+            if (val > 0) totalNeeded += val;
+            else if (val < 0) totalSurplus += Math.abs(val);
+        });
+
+        const infoRow = document.getElementById('info-row');
+        const neededDisp = document.getElementById('needed-display');
+        const surplusDisp = document.getElementById('surplus-display');
+        
+        neededDisp.textContent = `必要：${totalNeeded}`;
+        surplusDisp.textContent = `余剰：${totalSurplus}`;
+
+        // 合計が0でない時だけ表示
+        if (totalNeeded > 0 || totalSurplus > 0) {
+            infoRow.classList.add('show');
+            // 0の項目を薄くするか、常に表示しておく
+            neededDisp.style.opacity = totalNeeded > 0 ? "1" : "0.3";
+            surplusDisp.style.opacity = totalSurplus > 0 ? "1" : "0.3";
         } else {
-            display.classList.remove('show');
+            infoRow.classList.remove('show');
         }
     }
 
