@@ -108,7 +108,7 @@
             display: flex; align-items: center; padding: 9px 10px;
             border-radius: 12px; margin-bottom: 5px;
             background: rgba(0,0,0,0.04);
-            user-select: none; touch-action: none; cursor: grab;
+            user-select: none; cursor: default;
             transition: opacity 0.15s;
             border: 1.5px solid transparent;
             position: relative;
@@ -153,6 +153,7 @@
             margin-right: 11px; flex-shrink: 0; padding: 4px 6px;
             cursor: grab; border-radius: 6px;
             transition: background 0.15s;
+            touch-action: none;
         }
         .sort-handle:active { cursor: grabbing; }
         .sort-handle:hover { background: rgba(0,0,0,0.07); }
@@ -252,15 +253,7 @@
         }
         .reset-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--reset-shadow); }
 
-        /* 成功画像設定 */
-        .img-setting-box { background: rgba(0,0,0,0.03); border-radius: 14px; padding: 12px 14px; }
-        #img-preview-wrap {
-            width: 100%; height: 90px; border-radius: 10px;
-            background: rgba(0,0,0,0.05); overflow: hidden;
-            display: flex; align-items: center; justify-content: center;
-        }
-        #img-preview { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: none; }
-        #img-placeholder { font-size: 13px; color: #bbb; font-weight: 700; }
+        /* 成功画像設定（旧定義は下のimg-setting-boxで上書き） */
         .img-select-btn {
             flex: 1; padding: 9px 0; text-align: center;
             background: var(--reset-color); color: white;
@@ -271,6 +264,33 @@
             padding: 9px 14px; background: rgba(0,0,0,0.07);
             border: none; border-radius: 10px; font-weight: 800; font-size: 13px;
             color: #888; cursor: pointer; touch-action: manipulation;
+        }
+
+        /* 画像設定ボックス */
+        .img-setting-box { background: rgba(0,0,0,0.03); border-radius: 14px; padding: 12px 14px; margin-top: 4px; }
+        #img-preview-wrap {
+            width: 100%; height: 100px; border-radius: 10px;
+            background: rgba(0,0,0,0.05); overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 10px;
+        }
+        #img-preview { width: 100%; height: 100%; object-fit: contain; border-radius: 10px; display: none; }
+        #img-placeholder { font-size: 13px; color: #bbb; font-weight: 700; }
+        .img-btn-row { display: flex; gap: 8px; }
+
+        /* 音声選択 */
+        .sound-setting-box { background: rgba(0,0,0,0.03); border-radius: 14px; padding: 12px 14px; margin-top: 4px; }
+        .sound-setting-box .settings-section-label { margin-bottom: 8px; }
+        .sound-select-wrap { position: relative; }
+        .sound-select {
+            width: 100%; padding: 10px 36px 10px 12px; border-radius: 10px;
+            border: 1.5px solid rgba(0,0,0,0.1); background: white;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            font-weight: 800; font-size: 13px; color: #444;
+            appearance: none; -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23999' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center;
+            cursor: pointer; box-sizing: border-box;
         }
     </style>
 </head>
@@ -298,6 +318,25 @@
                 <i class="fa-solid fa-volume-high config-icon"></i>
                 <span class="config-label-text">成功サウンド</span>
             </label>
+            <!-- 音声設定 -->
+            <div class="sound-setting-box">
+                <div class="settings-section-label" style="margin-bottom:8px;">成功サウンド</div>
+                <div class="sound-select-wrap">
+                    <select class="sound-select" id="sound-select" onchange="updateSoundFile(this.value)">
+                        <option value="success.mp3">デフォルト</option>
+                        <option value="__random__">ランダム</option>
+                        <option value="honoka.wav">高坂穂乃果</option>
+                        <option value="eli.wav">絢瀬絵里</option>
+                        <option value="kotori.wav">南ことり</option>
+                        <option value="umi.wav">園田海未</option>
+                        <option value="rin.wav">星空凛</option>
+                        <option value="maki.wav">西木野真姫</option>
+                        <option value="nozomi.wav">東條希</option>
+                        <option value="hanayo.wav">小泉花陽</option>
+                        <option value="nico.wav">矢澤にこ</option>
+                    </select>
+                </div>
+            </div>
 
             <!-- 成功画像設定 -->
             <div class="img-setting-box">
@@ -306,7 +345,7 @@
                     <img id="img-preview" style="display:none;">
                     <div id="img-placeholder">未設定</div>
                 </div>
-                <div style="display:flex; gap:8px; margin-top:10px;">
+                <div class="img-btn-row">
                     <label class="img-select-btn" for="img-file-input">画像を選択</label>
                     <input type="file" id="img-file-input" accept="image/*" style="display:none;" onchange="onImageSelected(this)">
                     <button class="img-clear-btn" onclick="clearSuccessImage()">削除</button>
@@ -379,13 +418,27 @@
     let soundEnabled       = localStorage.getItem('ll_sound_enabled')       !== 'false';
 
     // ── 効果音 ───────────────────────────────────────────────────
-    const successAudio = new Audio('success.mp3');
+    const SOUND_FILES = [
+        'success.mp3','honoka.wav','eli.wav','kotori.wav','umi.wav',
+        'rin.wav','maki.wav','nozomi.wav','hanayo.wav','nico.wav'
+    ];
+    let currentSoundFile = localStorage.getItem('ll_sound_file') || 'success.mp3';
+    let successAudio = new Audio(currentSoundFile === '__random__' ? 'success.mp3' : currentSoundFile);
     successAudio.preload = 'auto';
     successAudio.load();
 
     function playSuccessSound() {
         if (!soundEnabled) return;
         try {
+            let file = currentSoundFile;
+            if (file === '__random__') {
+                file = SOUND_FILES[Math.floor(Math.random() * SOUND_FILES.length)];
+            }
+            // ファイルが変わっている場合だけ差し替え
+            if (successAudio.src !== new Audio(file).src) {
+                successAudio = new Audio(file);
+                successAudio.preload = 'auto';
+            }
             successAudio.currentTime = 0;
             successAudio.play().catch(() => {});
         } catch(e) {}
@@ -394,6 +447,16 @@
     window.updateSoundSetting = function(enabled) {
         soundEnabled = enabled;
         localStorage.setItem('ll_sound_enabled', enabled ? 'true' : 'false');
+    };
+
+    window.updateSoundFile = function(file) {
+        currentSoundFile = file;
+        localStorage.setItem('ll_sound_file', file);
+        if (file !== '__random__') {
+            successAudio = new Audio(file);
+            successAudio.preload = 'auto';
+            successAudio.load();
+        }
     };
 
     const board = document.getElementById('board');
@@ -465,6 +528,7 @@
         if (show) {
             document.getElementById('celebration-toggle').checked = celebrationEnabled;
             document.getElementById('sound-toggle').checked = soundEnabled;
+            document.getElementById('sound-select').value = currentSoundFile;
             updateImgPreview();
             rebuildSortList();
             modal.style.display = 'flex';
