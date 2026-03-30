@@ -844,6 +844,7 @@
             if (activeSliderIdx !== configIdx) return;
             heart.classList.remove('sliding');
             activeSliderIdx = null;
+            if (state.every(v => v === 0)) playSuccessSound();
             checkCelebration();
         }
 
