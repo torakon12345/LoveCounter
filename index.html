@@ -323,17 +323,17 @@
                 <div class="settings-section-label" style="margin-bottom:8px;">成功サウンド</div>
                 <div class="sound-select-wrap">
                     <select class="sound-select" id="sound-select" onchange="updateSoundFile(this.value)">
-                        <option value="success.mp3">デフォルト</option>
+                        <option value="success/success.mp3" selected>デフォルト</option>
                         <option value="__random__">ランダム</option>
-                        <option value="honoka.wav">高坂穂乃果</option>
-                        <option value="eli.wav">絢瀬絵里</option>
-                        <option value="kotori.wav">南ことり</option>
-                        <option value="umi.wav">園田海未</option>
-                        <option value="rin.wav">星空凛</option>
-                        <option value="maki.wav">西木野真姫</option>
-                        <option value="nozomi.wav">東條希</option>
-                        <option value="hanayo.wav">小泉花陽</option>
-                        <option value="nico.wav">矢澤にこ</option>
+                        <option value="success/honoka.wav">高坂穂乃果</option>
+                        <option value="success/eli.wav">絢瀬絵里</option>
+                        <option value="success/kotori.wav">南ことり</option>
+                        <option value="success/umi.wav">園田海未</option>
+                        <option value="success/rin.wav">星空凛</option>
+                        <option value="success/maki.wav">西木野真姫</option>
+                        <option value="success/nozomi.wav">東條希</option>
+                        <option value="success/hanayo.wav">小泉花陽</option>
+                        <option value="success/nico.wav">矢澤にこ</option>
                     </select>
                 </div>
             </div>
@@ -419,11 +419,11 @@
 
     // ── 効果音 ───────────────────────────────────────────────────
     const SOUND_FILES = [
-        'success.mp3','honoka.wav','eli.wav','kotori.wav','umi.wav',
-        'rin.wav','maki.wav','nozomi.wav','hanayo.wav','nico.wav'
+        'success/success.mp3','success/honoka.wav','success/eli.wav','success/kotori.wav','success/umi.wav',
+        'success/rin.wav','success/maki.wav','success/nozomi.wav','success/hanayo.wav','success/nico.wav'
     ];
-    let currentSoundFile = localStorage.getItem('ll_sound_file') || 'success.mp3';
-    let successAudio = new Audio(currentSoundFile === '__random__' ? 'success.mp3' : currentSoundFile);
+    let currentSoundFile = localStorage.getItem('ll_sound_file') || 'success/success.mp3';
+    let successAudio = new Audio(currentSoundFile === '__random__' ? 'success/success.mp3' : currentSoundFile);
     successAudio.preload = 'auto';
     successAudio.load();
 
@@ -528,7 +528,7 @@
         if (show) {
             document.getElementById('celebration-toggle').checked = celebrationEnabled;
             document.getElementById('sound-toggle').checked = soundEnabled;
-            document.getElementById('sound-select').value = currentSoundFile;
+            document.getElementById('sound-select').value = currentSoundFile || 'success/success.mp3';
             updateImgPreview();
             rebuildSortList();
             modal.style.display = 'flex';
