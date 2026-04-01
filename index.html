@@ -187,6 +187,12 @@
         .counters-stage { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: var(--row-gap); }
         .row-container.hidden { display: none; }
         .row-container { width: 100%; }
+        @keyframes all-flash {
+            0%   { filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15)); }
+            30%  { filter: drop-shadow(0 0 14px rgba(233,51,130,0.9)) brightness(1.3); }
+            100% { filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15)); }
+        }
+        .heart.all-flash { animation: all-flash 0.45s ease-out; }
 
         .controls-wrapper {
             position: relative; display: flex; align-items: center; justify-content: space-between;
@@ -252,6 +258,19 @@
             user-select: none; touch-action: manipulation;
         }
         .reset-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--reset-shadow); }
+
+        /* アンドゥ・リドゥ */
+        .undo-redo-row { display: flex; gap: 12px; margin-bottom: 12px; }
+        .ur-btn {
+            flex: 1; padding: 10px 0; border: none; border-radius: 14px;
+            background: rgba(0,0,0,0.07); color: #555;
+            font-size: 18px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            touch-action: manipulation; transition: background 0.15s, opacity 0.15s;
+        }
+        .ur-btn:active { background: rgba(0,0,0,0.14); }
+        .ur-btn:disabled { opacity: 0.3; pointer-events: none; }
+        .ur-btn span { font-family: 'M PLUS Rounded 1c'; font-weight: 900; font-size: 10px; white-space: nowrap; }
 
         /* 成功画像設定（旧定義は下のimg-setting-boxで上書き） */
         .img-select-btn {
@@ -384,6 +403,14 @@
             <div id="surplus-display" class="status-display">余剰ハート：0</div>
             <div id="success-inline">ライブ成功！</div>
         </div>
+        <div class="undo-redo-row">
+            <button class="ur-btn" id="undo-btn" onclick="doUndo()" disabled>
+                <i class="fa-solid fa-rotate-left"></i><span>もどす</span>
+            </button>
+            <button class="ur-btn" id="redo-btn" onclick="doRedo()" disabled>
+                <i class="fa-solid fa-rotate-right"></i><span>やりなおす</span>
+            </button>
+        </div>
         <button class="reset-btn" onclick="allReset()">ALL RESET</button>
     </div>
 </div>
@@ -406,6 +433,43 @@
 
     // state[configIdx] = カウンタ値
     let state = new Array(rowConfigs.length).fill(0);
+
+    // ── アンドゥ・リドゥ履歴 ─────────────────────────────────────
+    const HISTORY_MAX = 50;
+    let undoStack = [];  // 過去のstate snapshot
+    let redoStack = [];  // やり直し用snapshot
+
+    function saveHistory() {
+        undoStack.push([...state]);
+        if (undoStack.length > HISTORY_MAX) undoStack.shift();
+        redoStack = [];
+        updateUndoRedoBtns();
+    }
+
+    function updateUndoRedoBtns() {
+        const undoBtn = document.getElementById('undo-btn');
+        const redoBtn = document.getElementById('redo-btn');
+        if (undoBtn) undoBtn.disabled = undoStack.length === 0;
+        if (redoBtn) redoBtn.disabled = redoStack.length === 0;
+    }
+
+    window.doUndo = function() {
+        if (undoStack.length === 0) return;
+        redoStack.push([...state]);
+        const prev = undoStack.pop();
+        prev.forEach((v, i) => updateUI(i, v, false));
+        updateUndoRedoBtns();
+        checkCelebration();
+    };
+
+    window.doRedo = function() {
+        if (redoStack.length === 0) return;
+        undoStack.push([...state]);
+        const next = redoStack.pop();
+        next.forEach((v, i) => updateUI(i, v, false));
+        updateUndoRedoBtns();
+        checkCelebration();
+    };
 
     // rowOrder[表示位置] = configIdx
     let rowOrder = JSON.parse(localStorage.getItem('ll_row_order') || 'null')
@@ -829,6 +893,7 @@
             const pr = plusBtn.getBoundingClientRect();
             if (cx >= mr.left - sm && cx <= mr.right + sm) return;
             if (cx >= pr.left  - sm && cx <= pr.right + sm) return;
+            saveHistory(); // スライド開始前に保存
             activeSliderIdx = configIdx;
             heart.classList.add('sliding');
             const v = calcVal(cx, track);
@@ -858,6 +923,7 @@
 
     // ── ステップ操作 ─────────────────────────────────────────────
     window.step = function(configIdx, delta) {
+        saveHistory();
         const cur = state[configIdx];
         if (delta === -1) {
             if (cur > 0) {
@@ -865,6 +931,14 @@
             } else if (configIdx !== ALL_IDX && state[ALL_IDX] > 0 && cur === 0) {
                 updateUI(ALL_IDX, state[ALL_IDX] - 1, true);
                 if (navigator.vibrate) navigator.vibrate(30);
+                // ALLハートをフラッシュ
+                const allHeart = document.getElementById(`heart-${ALL_IDX}`);
+                if (allHeart) {
+                    allHeart.classList.remove('all-flash');
+                    void allHeart.offsetWidth; // reflow で再発火
+                    allHeart.classList.add('all-flash');
+                    setTimeout(() => allHeart.classList.remove('all-flash'), 450);
+                }
             } else {
                 updateUI(configIdx, cur - 1, true);
             }
@@ -1005,6 +1079,7 @@
 
     // ── 全リセット ───────────────────────────────────────────────
     window.allReset = function() {
+        saveHistory();
         isResetting = true;
         hideCelebration();
         state.fill(0);
@@ -1020,6 +1095,7 @@
         requestAnimationFrame(() => requestAnimationFrame(() => {
             for (let i = 0; i < rowConfigs.length; i++) updateUI(i, 0, false);
             isInitialized = true;
+            updateUndoRedoBtns();
         }));
     };
 </script>
