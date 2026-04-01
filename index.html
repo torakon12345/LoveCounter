@@ -13,9 +13,9 @@
             --bg-grad-end: #e2eef9;
             --glass-bg: rgba(255, 255, 255, 0.75);
             --track-bg: rgba(0, 0, 0, 0.05);
-            --heart-size: clamp(54px, 14vw, 60px);
-            --btn-size: clamp(40px, 10vw, 44px);
-            --row-gap: 12px;
+            --heart-size: clamp(44px, 11vw, 58px);
+            --btn-size:   clamp(34px,  9vw, 42px);
+            --row-gap:    clamp(4px,  1.2vh, 12px);
             --glow-color: #D1B932;
             --reset-color: #E50080;
             --reset-shadow: #b30064;
@@ -45,14 +45,14 @@
             width: 100%; max-width: 480px;
             height: 100vh; height: 100dvh;
             display: flex; flex-direction: column;
-            padding: calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 10px);
+            padding: calc(env(safe-area-inset-top) + clamp(8px,2vh,20px)) 24px calc(env(safe-area-inset-bottom) + clamp(4px,1vh,10px));
             box-sizing: border-box; position: relative;
         }
 
         .board-header {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 0 10px 15px 10px; margin-bottom: 5px;
-            border-bottom: 1px solid rgba(0,0,0,0.08); min-height: 40px;
+            padding: 0 10px clamp(6px,1.5vh,15px) 10px; margin-bottom: clamp(2px,0.5vh,5px);
+            border-bottom: 1px solid rgba(0,0,0,0.08); min-height: 36px;
             position: relative;
         }
         .board-title-image { max-width: 200px; width: 60vw; height: auto; display: block; }
@@ -184,7 +184,7 @@
         @keyframes sc-particle-fly { 0% { transform: translate(-50%,-50%) scale(0) rotate(0deg); opacity: 1; } 100% { transform: translate(var(--tx),var(--ty)) scale(1.3) rotate(var(--tr)); opacity: 0; } }
 
         /* カウンター本体 */
-        .counters-stage { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; padding-top: 10px; gap: var(--row-gap); }
+        .counters-stage { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; padding-top: clamp(2px,0.8vh,10px); gap: var(--row-gap); overflow: hidden; }
         .row-container.hidden { display: none; }
         .row-container { width: 100%; }
         @keyframes all-flash {
@@ -196,7 +196,7 @@
 
         .controls-wrapper {
             position: relative; display: flex; align-items: center; justify-content: space-between;
-            gap: 12px; padding: 10px 0;
+            gap: 12px; padding: clamp(4px,1vh,10px) 0;
             touch-action: none; user-select: none; -webkit-user-select: none;
         }
         .step-btn {
@@ -236,41 +236,50 @@
         .symbol { font-size: 9px; font-weight: 900; color: var(--primary); pointer-events: none; letter-spacing: -0.02em; }
 
         /* ボトム */
-        .bottom-actions { margin-top: auto; padding: 10px 0 30px; display: flex; flex-direction: column; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); }
-        .info-row { display: flex; gap: 20px; margin-bottom: 15px; opacity: 0; transition: opacity 0.3s; align-items: center; }
+        .bottom-actions {
+            margin-top: auto; flex-shrink: 0;
+            padding: clamp(6px,1.5vh,12px) 0 clamp(8px,2vh,20px);
+            display: flex; flex-direction: column; align-items: center;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            gap: clamp(6px,1.5vh,12px);
+        }
+        .info-row { display: flex; gap: 16px; opacity: 0; transition: opacity 0.3s; align-items: center; margin: 0; }
         .info-row.show { opacity: 1; }
-        .status-display { font-family: 'M PLUS Rounded 1c'; font-weight: 900; font-size: 16px; }
+        .status-display { font-family: 'M PLUS Rounded 1c'; font-weight: 900; font-size: clamp(13px,3.5vw,16px); }
         #needed-display { color: var(--needed-color); }
         #surplus-display { color: var(--reset-color); }
 
         /* インラインライブ成功 */
         #success-inline {
             font-family: 'M PLUS Rounded 1c'; font-weight: 900;
-            font-size: 16px; color: #e93382;
+            font-size: clamp(13px,3.5vw,16px); color: #e93382;
             display: none; letter-spacing: 0.05em;
         }
         #success-inline.show { display: block; }
 
         .reset-btn {
-            background: var(--reset-color); color: white; border: none; padding: 16px 55px; border-radius: 40px;
-            font-weight: 900; font-size: 16px; box-shadow: 0 6px 0 var(--reset-shadow);
+            background: var(--reset-color); color: white; border: none;
+            padding: clamp(12px,2.5vh,16px) clamp(32px,10vw,55px);
+            border-radius: 40px; font-weight: 900;
+            font-size: clamp(13px,3.5vw,16px);
+            box-shadow: 0 5px 0 var(--reset-shadow);
             cursor: pointer; transition: all 0.1s ease; letter-spacing: 0.15em;
             user-select: none; touch-action: manipulation;
         }
-        .reset-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--reset-shadow); }
+        .reset-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--reset-shadow); }
 
         /* アンドゥ・リドゥ */
-        .undo-redo-row { display: flex; gap: 12px; margin-bottom: 12px; }
+        .undo-redo-row { display: flex; gap: 10px; width: 100%; }
         .ur-btn {
-            flex: 1; padding: 10px 0; border: none; border-radius: 14px;
+            flex: 1; padding: clamp(7px,1.5vh,10px) 0; border: none; border-radius: 12px;
             background: rgba(0,0,0,0.07); color: #555;
-            font-size: 18px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 6px;
+            font-size: clamp(14px,4vw,18px); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
             touch-action: manipulation; transition: background 0.15s, opacity 0.15s;
         }
         .ur-btn:active { background: rgba(0,0,0,0.14); }
         .ur-btn:disabled { opacity: 0.3; pointer-events: none; }
-        .ur-btn span { font-family: 'M PLUS Rounded 1c'; font-weight: 900; font-size: 10px; white-space: nowrap; }
+        .ur-btn span { font-family: 'M PLUS Rounded 1c'; font-weight: 900; font-size: clamp(9px,2.5vw,11px); white-space: nowrap; }
 
         /* 成功画像設定（旧定義は下のimg-setting-boxで上書き） */
         .img-select-btn {
