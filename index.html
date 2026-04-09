@@ -232,7 +232,7 @@
         .heart-number { color: white; font-family: 'JetBrains Mono', monospace; font-size: clamp(20px,6vw,24px); font-weight: 800; user-select: none; pointer-events: none; line-height: 1; text-shadow: 0 1px 4px rgba(0,0,0,0.2); }
         .heart.is-surplus .surplus-label { display: block; }
         .heart.is-surplus .heart-number { font-size: 18px; }
-        .symbol-badge { position: absolute; bottom: 5px; right: 4px; min-width: 18px; height: 16px; padding: 0 3px; background: white; border-radius: 8px; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 22; pointer-events: none; box-sizing: border-box; }
+       .symbol-badge { display: none; }
         .symbol { font-size: 9px; font-weight: 900; color: var(--primary); pointer-events: none; letter-spacing: -0.02em; }
 
         /* ボトム */
@@ -425,6 +425,26 @@
 </div>
 
 <script>
+// ── タップフィードバック（クリック音＋バイブ） ─────────────────────
+const tapAudio = new AudioContext ? (() => {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return () => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 440;
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.06);
+    };
+})() : () => {};
+
+function tapFeedback() {
+    try { tapAudio(); } catch(e) {}
+    if (navigator.vibrate) navigator.vibrate(18);
+}
     const HEART_SVG_PATH = "M16 28.1a.5.5 0 01-.3-.1C12 25.3 4 19 4 12.5A6.5 6.5 0 0110.5 6a6.5 6.5 0 015.5 3 6.5 6.5 0 015.5-3 6.5 6.5 0 016.5 6.5c0 6.5-8 12.8-11.7 15.5a.5.5 0 01-.3.1z";
 
     // configIdx = 0〜6 が固定のカラー定義
@@ -932,6 +952,7 @@
 
     // ── ステップ操作 ─────────────────────────────────────────────
     window.step = function(configIdx, delta) {
+  tapFeedback(); //
         saveHistory();
         const cur = state[configIdx];
         if (delta === -1) {
